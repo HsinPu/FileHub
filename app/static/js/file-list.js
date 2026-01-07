@@ -50,7 +50,26 @@ document.addEventListener('DOMContentLoaded', function() {
             closeCreateFolderModal();
         }
     });
+    
+    // 檔案查看 Modal 功能
+    const viewFileModal = document.getElementById('viewFileModal');
+    const closeViewFileModalBtn = document.getElementById('closeViewFileModalBtn');
+    
+    closeViewFileModalBtn.addEventListener('click', closeViewFileModal);
+    
+    // 點擊模態視窗外部關閉
+    viewFileModal.addEventListener('click', function(e) {
+        if (e.target === viewFileModal) {
+            closeViewFileModal();
+        }
+    });
 });
+
+// 關閉檔案查看 Modal
+function closeViewFileModal() {
+    const modal = document.getElementById('viewFileModal');
+    modal.classList.add('hidden');
+}
 
 // 載入檔案列表
 async function loadFileList(path = '') {
@@ -398,13 +417,95 @@ function loadDirectory(path) {
 }
 
 // 查看檔案
-function viewFile(path, type) {
+async function viewFile(path, type) {
     if (type === 'directory') {
         loadDirectory(path);
-    } else {
-        // 未來實作檔案詳情頁面
-        console.log('查看檔案:', path);
+        return;
     }
+    
+    // 計算相對路徑
+    const rootPath = fileTreeData ? fileTreeData.path : '/srv';
+    const relativePath = path.replace(rootPath, '').replace(/^\//, '');
+    
+    // 開啟 Modal
+    const modal = document.getElementById('viewFileModal');
+    const title = document.getElementById('viewFileTitle');
+    const loading = document.getElementById('viewFileLoading');
+    const error = document.getElementById('viewFileError');
+    const errorMessage = document.getElementById('viewFileErrorMessage');
+    const textContent = document.getElementById('viewFileTextContent');
+    const textElement = document.getElementById('viewFileText');
+    const imageContent = document.getElementById('viewFileImageContent');
+    const imageElement = document.getElementById('viewFileImage');
+    
+    // 顯示 Modal 和載入狀態
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    error.classList.add('hidden');
+    textContent.classList.add('hidden');
+    imageContent.classList.add('hidden');
+    
+    // 設定標題（暫時顯示路徑，之後會更新為檔案名稱）
+    title.textContent = '載入中...';
+    
+    try {
+        // 呼叫 API 取得檔案內容
+        const response = await fetch(`/api/v1/files/content?path=${encodeURIComponent(relativePath)}`);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // 隱藏載入狀態
+        loading.classList.add('hidden');
+        
+        if (!data.success) {
+            throw new Error(data.message || '讀取檔案失敗');
+        }
+        
+        // 更新標題為檔案名稱
+        title.textContent = data.name;
+        
+        // 根據檔案類型顯示內容
+        if (data.type === 'text') {
+            textElement.textContent = data.content;
+            textContent.classList.remove('hidden');
+        } else if (data.type === 'image') {
+            imageElement.src = `data:image/${getImageMimeType(data.name)};base64,${data.content}`;
+            imageContent.classList.remove('hidden');
+        } else {
+            throw new Error('不支援的檔案類型');
+        }
+        
+    } catch (error) {
+        // 隱藏載入狀態
+        loading.classList.add('hidden');
+        
+        // 顯示錯誤訊息
+        errorMessage.textContent = error.message || '讀取檔案時發生錯誤';
+        error.classList.remove('hidden');
+    }
+}
+
+// 取得圖片的 MIME 類型
+function getImageMimeType(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const mimeTypes = {
+        'jpg': 'jpeg',
+        'jpeg': 'jpeg',
+        'png': 'png',
+        'gif': 'gif',
+        'bmp': 'bmp',
+        'svg': 'svg+xml',
+        'webp': 'webp',
+        'ico': 'x-icon',
+        'tiff': 'tiff',
+        'tif': 'tiff'
+    };
+    return mimeTypes[ext] || 'jpeg';
 }
 
 // 過濾檔案

@@ -98,3 +98,29 @@ class FileController:
             raise HTTPException(status_code=403, detail=f"沒有寫入權限: {str(e)}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")
+    
+    def get_file_content(self, path: str) -> dict:
+        """
+        取得檔案內容
+        
+        Args:
+            path: 檔案相對路徑
+            
+        Returns:
+            包含檔案內容、類型、大小等資訊的字典
+            
+        Raises:
+            HTTPException: 如果發生錯誤
+        """
+        try:
+            result = self.file_service.get_file_content(path)
+            return result
+            
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except PermissionError as e:
+            raise HTTPException(status_code=403, detail=f"沒有讀取權限: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")

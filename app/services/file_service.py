@@ -301,3 +301,93 @@ class FileService:
             raise
         except Exception as e:
             raise Exception(f"建立資料夾時發生錯誤: {str(e)}")
+    
+    def get_file_content(self, path: str) -> Dict:
+        """
+        讀取檔案內容
+        
+        Args:
+            path: 檔案相對路徑
+            
+        Returns:
+            包含檔案內容、類型、大小等資訊的字典
+            
+        Raises:
+            ValueError: 如果路徑不安全或檔案類型不支援
+            FileNotFoundError: 如果檔案不存在
+            PermissionError: 如果沒有讀取權限
+        """
+        import base64
+        
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+        
+        # 文字檔副檔名
+        TEXT_EXTENSIONS = {'.txt', '.json', '.py', '.js', '.html', '.css', '.md', 
+                          '.yml', '.yaml', '.xml', '.csv', '.log', '.sh', '.bat',
+                          '.conf', '.config', '.ini', '.env', '.properties', '.sql',
+                          '.java', '.cpp', '.c', '.h', '.hpp', '.php', '.rb', '.go',
+                          '.rs', '.swift', '.kt', '.scala', '.ts', '.tsx', '.jsx',
+                          '.vue', '.svelte', '.dart', '.lua', '.pl', '.r', '.m',
+                          '.mm', '.h', '.hpp', '.cxx', '.cc', '.asm', '.s', '.S'}
+        
+        # 圖片檔副檔名
+        IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp',
+                           '.ico', '.tiff', '.tif', '.heic', '.heif'}
+        
+        try:
+            target_path = self._normalize_path(path)
+            
+            if not target_path.exists():
+                raise FileNotFoundError(f"檔案不存在: {path}")
+            
+            if target_path.is_dir():
+                raise ValueError(f"路徑是目錄，不是檔案: {path}")
+            
+            # 檢查檔案大小
+            file_size = target_path.stat().st_size
+            if file_size > MAX_FILE_SIZE:
+                raise ValueError(f"檔案過大（{self._format_file_size(file_size)}），無法預覽（限制：{self._format_file_size(MAX_FILE_SIZE)}）")
+            
+            # 判斷檔案類型
+            file_ext = target_path.suffix.lower()
+            file_type = None
+            
+            if file_ext in TEXT_EXTENSIONS:
+                file_type = "text"
+            elif file_ext in IMAGE_EXTENSIONS:
+                file_type = "image"
+            else:
+                raise ValueError(f"不支援的檔案類型: {file_ext}")
+            
+            # 讀取檔案內容
+            if file_type == "text":
+                # 讀取文字檔
+                try:
+                    with open(target_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except UnicodeDecodeError:
+                    # 如果 UTF-8 解碼失敗，嘗試其他編碼
+                    try:
+                        with open(target_path, 'r', encoding='latin-1') as f:
+                            content = f.read()
+                    except Exception:
+                        raise ValueError("無法讀取檔案內容（編碼問題）")
+            elif file_type == "image":
+                # 讀取圖片檔並轉換為 base64
+                with open(target_path, 'rb') as f:
+                    image_data = f.read()
+                    content = base64.b64encode(image_data).decode('utf-8')
+            
+            return {
+                "success": True,
+                "name": target_path.name,
+                "type": file_type,
+                "content": content,
+                "size": file_size,
+                "path": str(target_path)
+            }
+            
+        except (ValueError, FileNotFoundError, PermissionError):
+            raise
+        except Exception as e:
+            raise Exception(f"讀取檔案內容時發生錯誤: {str(e)}")

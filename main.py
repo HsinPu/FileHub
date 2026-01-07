@@ -96,6 +96,21 @@ async def api_create_directory(request: CreateDirectoryRequest):
     return JSONResponse(content=result)
 
 
+@app.get("/api/v1/files/content")
+async def api_get_file_content(path: str = Query(..., description="檔案相對路徑")):
+    """
+    取得檔案內容 API
+    
+    Args:
+        path: 檔案相對路徑
+        
+    Returns:
+        JSON 格式的檔案內容
+    """
+    result = file_controller.get_file_content(path)
+    return JSONResponse(content=result)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

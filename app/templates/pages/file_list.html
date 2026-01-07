@@ -45,6 +45,38 @@
             </form>
         </div>
     </div>
+    
+    <!-- View File Modal -->
+    <div id="viewFileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white shadow-lg w-full h-full max-w-full max-h-full flex flex-col rounded-lg">
+            <div class="flex justify-between items-center mb-4 p-6 pb-4 border-b border-gray-200 flex-shrink-0">
+                <h3 id="viewFileTitle" class="text-lg font-semibold text-gray-800">查看檔案</h3>
+                <button id="closeViewFileModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Loading State -->
+                <div id="viewFileLoading" class="text-center py-8 text-gray-400">
+                    <div class="spinner border-3 border-gray-200 border-t-blue-500 rounded-full w-10 h-10 mx-auto mb-4 animate-spin"></div>
+                    <p>載入中...</p>
+                </div>
+                
+                <!-- Error State -->
+                <div id="viewFileError" class="hidden text-center py-8 text-red-500">
+                    <p id="viewFileErrorMessage"></p>
+                </div>
+                
+                <!-- Text File Content -->
+                <div id="viewFileTextContent" class="hidden">
+                    <pre id="viewFileText" class="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm font-mono whitespace-pre-wrap break-words"></pre>
+                </div>
+                
+                <!-- Image File Content -->
+                <div id="viewFileImageContent" class="hidden text-center">
+                    <img id="viewFileImage" src="" alt="檔案預覽" class="max-w-full max-h-[70vh] mx-auto rounded-lg shadow-md">
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="text-gray-500 flex-1 flex flex-col overflow-hidden">
         <!-- Search Bar -->
         <div class="flex gap-4 mb-6 flex-shrink-0">
