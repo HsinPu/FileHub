@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}首頁 - Files-App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sidebar {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+<!-- 首頁隱藏側邊欄 -->
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto h-full">
+    <div class="bg-white rounded-lg shadow-sm p-8 w-full">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+            <h2 class="text-2xl font-semibold text-gray-800">歡迎使用 Files-App</h2>
+        </div>
+        <div class="text-gray-500">
+            <p class="mb-4 text-lg">這是一個檔案管理系統，提供直觀的網頁介面來管理您的檔案。</p>
+            <p class="mb-4 text-lg">您可以透過上方選單來瀏覽檔案、查看檔案詳情，以及上傳新檔案。</p>
+            <p class="mb-4 text-lg">系統採用現代化的設計風格，提供流暢的使用體驗，讓檔案管理變得更加簡單方便。</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

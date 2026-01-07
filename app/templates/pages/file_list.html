@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}檔案列表 - Files-App{% endblock %}
+
+{% block sidebar %}
+<div class="w-full h-full flex flex-col">
+    <div class="mb-4 pb-3 border-b border-gray-200 flex-shrink-0">
+        <h3 class="text-base font-semibold text-gray-800">檔案樹狀圖</h3>
+    </div>
+    <div class="flex-1 overflow-y-auto" id="fileTreeContainer">
+        <div class="text-center py-8 text-gray-400">
+            <div class="spinner border-3 border-gray-200 border-t-blue-500 rounded-full w-10 h-10 mx-auto mb-4 animate-spin"></div>
+            <p>載入中...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm p-6 h-full flex flex-col">
+    <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 flex-shrink-0">
+        <h2 class="text-xl font-semibold text-gray-800">檔案列表</h2>
+    </div>
+    <div class="text-gray-500 flex-1 flex flex-col overflow-hidden">
+        <!-- Search Bar -->
+        <div class="flex gap-4 mb-6 flex-shrink-0">
+            <input type="text" id="searchInput" class="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="搜尋檔案...">
+            <button id="searchButton" class="inline-block px-6 py-3 bg-blue-500 text-white font-medium rounded-lg cursor-pointer transition-all hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-md">搜尋</button>
+        </div>
+
+        <!-- File Table -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden flex-1 overflow-y-auto">
+            <table class="w-full border-collapse">
+                <thead class="bg-gray-50 sticky top-0">
+                    <tr>
+                        <th class="px-4 py-4 text-left font-semibold text-gray-800 border-b-2 border-gray-200">名稱</th>
+                        <th class="px-4 py-4 text-left font-semibold text-gray-800 border-b-2 border-gray-200">類型</th>
+                        <th class="px-4 py-4 text-left font-semibold text-gray-800 border-b-2 border-gray-200">大小</th>
+                        <th class="px-4 py-4 text-left font-semibold text-gray-800 border-b-2 border-gray-200">修改時間</th>
+                        <th class="px-4 py-4 text-left font-semibold text-gray-800 border-b-2 border-gray-200">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="fileTableBody">
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-400">
+                            <div class="spinner border-3 border-gray-200 border-t-blue-500 rounded-full w-10 h-10 mx-auto mb-4 animate-spin"></div>
+                            <p>載入中...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State (hidden by default, shown when no files) -->
+        <div id="emptyState" class="text-center py-12 text-gray-500 hidden">
+            <div class="text-6xl mb-4 opacity-50">📁</div>
+            <h3 class="mb-2">目前沒有檔案</h3>
+            <p class="mb-4">目前沒有任何檔案</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/file-list.js"></script>
+{% endblock %}

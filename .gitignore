@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Cache
+cache/
+*.pyc
+
+# Environment
+.env
+.env.local
+
+# Database
+database/*.db
+database/*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Files root directory (mounted volume)
+srv/

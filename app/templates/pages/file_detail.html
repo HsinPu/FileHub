@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}檔案詳情 - Files-App{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm p-6 h-full flex flex-col overflow-y-auto">
+    <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 flex-shrink-0">
+        <div class="flex justify-between items-center w-full">
+            <h2 class="text-xl font-semibold text-gray-800">檔案詳情</h2>
+            <a href="/files" class="px-6 py-3 bg-transparent border-2 border-blue-500 text-blue-500 rounded-lg transition-all hover:bg-blue-500 hover:text-white">返回列表</a>
+        </div>
+    </div>
+    <div class="text-gray-500 flex-1 overflow-y-auto">
+        <!-- File Info -->
+        <div class="flex items-center gap-6 mb-8 pb-8 border-b border-gray-200">
+            <div class="text-6xl">📄</div>
+            <div class="flex-1">
+                <h3 class="text-2xl mb-2 text-gray-800">example.txt</h3>
+                <p class="text-gray-500">文字檔</p>
+            </div>
+        </div>
+
+        <!-- File Properties -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+            <table class="w-full border-collapse">
+                <tbody>
+                    <tr class="transition-colors hover:bg-gray-50">
+                        <td class="px-4 py-4 border-b border-gray-200 font-semibold w-48 text-gray-800">檔案名稱</td>
+                        <td class="px-4 py-4 border-b border-gray-200 text-gray-500">example.txt</td>
+                    </tr>
+                    <tr class="transition-colors hover:bg-gray-50">
+                        <td class="px-4 py-4 border-b border-gray-200 font-semibold text-gray-800">檔案類型</td>
+                        <td class="px-4 py-4 border-b border-gray-200 text-gray-500">文字檔 (.txt)</td>
+                    </tr>
+                    <tr class="transition-colors hover:bg-gray-50">
+                        <td class="px-4 py-4 border-b border-gray-200 font-semibold text-gray-800">檔案大小</td>
+                        <td class="px-4 py-4 border-b border-gray-200 text-gray-500">2.5 KB</td>
+                    </tr>
+                    <tr class="transition-colors hover:bg-gray-50">
+                        <td class="px-4 py-4 border-b border-gray-200 font-semibold text-gray-800">建立時間</td>
+                        <td class="px-4 py-4 border-b border-gray-200 text-gray-500">2024-01-10 14:30:00</td>
+                    </tr>
+                    <tr class="transition-colors hover:bg-gray-50">
+                        <td class="px-4 py-4 border-b border-gray-200 font-semibold text-gray-800">修改時間</td>
+                        <td class="px-4 py-4 border-b border-gray-200 text-gray-500">2024-01-15 10:30:00</td>
+                    </tr>
+                    <tr class="transition-colors hover:bg-gray-50">
+                        <td class="px-4 py-4 border-b border-gray-200 font-semibold text-gray-800">檔案路徑</td>
+                        <td class="px-4 py-4 border-b border-gray-200 text-gray-500">/files/example.txt</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 mb-6">
+            <button class="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg cursor-pointer transition-all hover:bg-blue-600 hover:-translate-y-0.5 hover:shadow-md">下載</button>
+            <button class="px-6 py-3 bg-purple-500 text-white font-medium rounded-lg cursor-pointer transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-md">編輯</button>
+            <button class="px-6 py-3 bg-transparent border-2 border-blue-500 text-blue-500 rounded-lg transition-all hover:bg-blue-500 hover:text-white">刪除</button>
+        </div>
+
+        <!-- File Preview -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800">預覽</h3>
+            </div>
+            <div class="bg-gray-50 p-6 rounded-lg min-h-[200px]">
+                <p class="text-gray-500 font-mono whitespace-pre-wrap">
+這是檔案內容的預覽區域。
+實際功能將在後續實作中完成。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

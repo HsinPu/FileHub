@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Files-App{% endblock %}</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-full flex flex-col">
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-sm z-50 py-4 flex-shrink-0">
+        <div class="w-full px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="navbar-brand">
+                <h1 class="text-2xl font-semibold text-blue-500">Files-App</h1>
+            </div>
+            <ul class="flex flex-col md:flex-row gap-2 md:gap-8 list-none">
+                <li><a href="/" class="text-gray-800 font-medium hover:text-blue-500 hover:bg-gray-50 px-4 py-2 rounded-lg transition-all">首頁</a></li>
+                <li><a href="/files" class="text-gray-800 font-medium hover:text-blue-500 hover:bg-gray-50 px-4 py-2 rounded-lg transition-all">檔案列表</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="flex flex-1 w-full overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar w-full md:w-64 bg-white shadow-sm p-6 h-full overflow-y-auto flex-shrink-0">
+            <div class="sidebar-content h-full">
+                {% block sidebar %}
+                <ul class="list-none">
+                    <li class="mb-2"><a href="/" class="block px-4 py-3 text-gray-800 rounded-lg hover:bg-gray-50 hover:text-blue-500 transition-all hover:translate-x-1">首頁</a></li>
+                    <li class="mb-2"><a href="/files" class="block px-4 py-3 text-gray-800 rounded-lg hover:bg-gray-50 hover:text-blue-500 transition-all hover:translate-x-1">檔案列表</a></li>
+                </ul>
+                {% endblock %}
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 min-w-0 overflow-y-auto p-6">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Base JavaScript -->
+    <script src="/static/js/base.js"></script>
+    
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
