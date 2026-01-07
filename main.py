@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from typing import Optional
 import os
 
@@ -19,6 +20,12 @@ from app.controller.v1.file_controller import FileController
 
 # 建立 Controller 實例
 file_controller = FileController()
+
+
+# Pydantic 模型
+class CreateDirectoryRequest(BaseModel):
+    path: Optional[str] = None
+    name: str
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -71,6 +78,21 @@ async def api_get_file_tree(
         JSON 格式的檔案樹狀結構
     """
     result = file_controller.get_file_tree(path, max_depth)
+    return JSONResponse(content=result)
+
+
+@app.post("/api/v1/files/directory")
+async def api_create_directory(request: CreateDirectoryRequest):
+    """
+    建立新資料夾 API
+    
+    Args:
+        request: 包含路徑和資料夾名稱的請求體
+        
+    Returns:
+        JSON 格式的建立結果
+    """
+    result = file_controller.create_directory(request.path, request.name)
     return JSONResponse(content=result)
 
 

@@ -66,3 +66,35 @@ class FileController:
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")
+    
+    def create_directory(self, path: Optional[str] = None, name: str = "") -> dict:
+        """
+        建立新資料夾
+        
+        Args:
+            path: 相對路徑，預設為 None（根目錄）
+            name: 資料夾名稱
+            
+        Returns:
+            包含成功訊息和路徑的字典
+            
+        Raises:
+            HTTPException: 如果發生錯誤
+        """
+        try:
+            if path is None:
+                path = ""
+            
+            result = self.file_service.create_directory(path, name)
+            return result
+            
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except FileExistsError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        except PermissionError as e:
+            raise HTTPException(status_code=403, detail=f"沒有寫入權限: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")

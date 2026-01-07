@@ -198,8 +198,15 @@ class FileService:
         Returns:
             樹狀結構字典
         """
+        # 如果達到最大深度，只返回當前節點資訊，不包含子節點
         if current_depth >= max_depth:
-            return None
+            # 返回當前節點，但 children 為空陣列
+            return {
+                "name": path.name if path != self.root_path else "根目錄",
+                "path": str(path),
+                "type": "directory" if path.is_dir() else "file",
+                "children": []
+            }
         
         is_dir = path.is_dir()
         
@@ -215,7 +222,7 @@ class FileService:
                 for item in sorted(path.iterdir()):
                     try:
                         child_tree = self._build_tree(item, max_depth, current_depth + 1)
-                        if child_tree:
+                        if child_tree is not None:
                             result["children"].append(child_tree)
                     except (PermissionError, OSError):
                         # 跳過無法讀取的檔案
@@ -225,3 +232,72 @@ class FileService:
                 pass
         
         return result
+    
+    def create_directory(self, path: str = "", name: str = "") -> Dict:
+        """
+        建立新資料夾
+        
+        Args:
+            path: 相對路徑，預設為空字串（根目錄）
+            name: 資料夾名稱
+            
+        Returns:
+            包含成功訊息和路徑的字典
+            
+        Raises:
+            ValueError: 如果路徑不安全或資料夾名稱無效
+            FileExistsError: 如果資料夾已存在
+            PermissionError: 如果沒有寫入權限
+        """
+        import re
+        
+        # 驗證資料夾名稱
+        if not name or name.strip() == "":
+            raise ValueError("資料夾名稱不能為空")
+        
+        # 移除前後空白
+        name = name.strip()
+        
+        # 檢查資料夾名稱是否包含不允許的字元
+        # Windows 和 Linux 都不允許的字元: < > : " / \ | ? *
+        invalid_chars = r'[<>:"/\\|?*\x00-\x1f]'
+        if re.search(invalid_chars, name):
+            raise ValueError("資料夾名稱包含不允許的字元")
+        
+        # 檢查是否為保留名稱（Windows）
+        reserved_names = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 
+                         'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 
+                         'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']
+        if name.upper() in reserved_names:
+            raise ValueError(f"資料夾名稱 '{name}' 是保留名稱，不能使用")
+        
+        try:
+            # 規範化父目錄路徑
+            parent_path = self._normalize_path(path)
+            
+            if not parent_path.exists():
+                raise FileNotFoundError(f"父目錄不存在: {path}")
+            
+            if not parent_path.is_dir():
+                raise ValueError(f"路徑不是目錄: {path}")
+            
+            # 建立新資料夾路徑
+            new_dir_path = parent_path / name
+            
+            # 檢查資料夾是否已存在
+            if new_dir_path.exists():
+                raise FileExistsError(f"資料夾已存在: {name}")
+            
+            # 建立資料夾
+            new_dir_path.mkdir(parents=False, exist_ok=False)
+            
+            return {
+                "success": True,
+                "message": "資料夾建立成功",
+                "path": str(new_dir_path)
+            }
+            
+        except (ValueError, FileNotFoundError, FileExistsError, PermissionError):
+            raise
+        except Exception as e:
+            raise Exception(f"建立資料夾時發生錯誤: {str(e)}")

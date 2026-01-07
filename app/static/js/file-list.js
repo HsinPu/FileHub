@@ -20,6 +20,36 @@ document.addEventListener('DOMContentLoaded', function() {
     searchButton.addEventListener('click', function() {
         filterFiles(searchInput.value);
     });
+    
+    // 新增資料夾功能
+    const createFolderBtn = document.getElementById('createFolderBtn');
+    const createFolderModal = document.getElementById('createFolderModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const createFolderForm = document.getElementById('createFolderForm');
+    
+    createFolderBtn.addEventListener('click', function() {
+        createFolderModal.classList.remove('hidden');
+        document.getElementById('folderNameInput').focus();
+    });
+    
+    closeModalBtn.addEventListener('click', closeCreateFolderModal);
+    cancelBtn.addEventListener('click', closeCreateFolderModal);
+    
+    createFolderForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const folderName = document.getElementById('folderNameInput').value.trim();
+        if (folderName) {
+            createDirectory(folderName);
+        }
+    });
+    
+    // 點擊模態視窗外部關閉
+    createFolderModal.addEventListener('click', function(e) {
+        if (e.target === createFolderModal) {
+            closeCreateFolderModal();
+        }
+    });
 });
 
 // 載入檔案列表
@@ -47,7 +77,7 @@ async function loadFileList(path = '') {
 // 載入檔案樹狀圖
 async function loadFileTree() {
     try {
-        const response = await fetch('/api/v1/files/tree');
+        const response = await fetch('/api/v1/files/tree?max_depth=20');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -56,7 +86,35 @@ async function loadFileTree() {
         const data = await response.json();
         fileTreeData = data;
         
+        // 除錯：檢查第三層資料
+        if (data && data.children) {
+            data.children.forEach((child, idx) => {
+                if (child.name === '新增資料夾' && child.children && child.children.length > 0) {
+                    console.log('找到「新增資料夾」，第三層子項目:', child.children.map(c => c.name));
+                    console.log('第三層資料結構:', JSON.stringify(child.children, null, 2));
+                }
+            });
+        }
+        
         renderFileTree(data);
+        
+        // 除錯：檢查渲染後的 DOM 結構
+        setTimeout(() => {
+            const container = document.getElementById('fileTreeContainer');
+            if (container) {
+                const allTreeItems = container.querySelectorAll('.tree-item');
+                console.log(`總共渲染了 ${allTreeItems.length} 個樹狀項目`);
+                allTreeItems.forEach((item, idx) => {
+                    const name = item.textContent.trim();
+                    const level = item.closest('ul')?.querySelectorAll('ul').length || 0;
+                    const hasChildren = item.querySelector('.tree-children');
+                    const isHidden = hasChildren && hasChildren.classList.contains('hidden');
+                    if (name.includes('新增資料夾') || name.includes('1234')) {
+                        console.log(`項目 ${idx}: "${name}", 層級: ${level}, 有子節點: ${!!hasChildren}, 隱藏: ${isHidden}`);
+                    }
+                });
+            }
+        }, 100);
         
     } catch (error) {
         console.error('載入檔案樹狀圖失敗:', error);
@@ -122,7 +180,21 @@ function renderFileTree(treeData, container = null, level = 0) {
     
     // 根節點
     const li = document.createElement('li');
-    li.className = `tree-item ${treeData.type} ${level === 0 ? 'expanded' : ''} py-1 select-none ${treeData.type === 'directory' ? 'font-medium cursor-pointer' : 'cursor-default'}`;
+    li.className = `tree-item ${treeData.type} ${level === 0 ? 'expanded' : ''} py-1 select-none whitespace-nowrap ${treeData.type === 'directory' ? 'font-medium cursor-pointer' : 'cursor-default'}`;
+    
+    // 檢查是否有子節點
+    const hasChildren = treeData.children && Array.isArray(treeData.children) && treeData.children.length > 0;
+    const isExpanded = level === 0 || (hasChildren && level === 0);
+    
+    // 展開/收合按鈕（僅有子節點的目錄顯示）
+    let expandButton = null;
+    if (hasChildren && treeData.type === 'directory') {
+        expandButton = document.createElement('span');
+        expandButton.className = 'inline-block w-4 text-center cursor-pointer text-gray-600 hover:text-blue-500 mr-1 select-none';
+        expandButton.textContent = isExpanded ? '−' : '+';
+        expandButton.style.fontSize = '14px';
+        expandButton.style.lineHeight = '1';
+    }
     
     const icon = treeData.type === 'directory' ? '📁' : getFileIcon(treeData.name, treeData.type);
     const iconSpan = document.createElement('span');
@@ -136,6 +208,7 @@ function renderFileTree(treeData, container = null, level = 0) {
     // 只有目錄才能點擊載入
     if (treeData.type === 'directory') {
         labelSpan.style.cursor = 'pointer';
+        // 點擊目錄名稱時，只載入目錄內容
         labelSpan.addEventListener('click', function(e) {
             e.stopPropagation();
             loadDirectory(treeData.path);
@@ -152,36 +225,52 @@ function renderFileTree(treeData, container = null, level = 0) {
         });
     }
     
+    // 組裝 DOM 元素
+    if (expandButton) {
+        li.appendChild(expandButton);
+    }
     li.appendChild(iconSpan);
     li.appendChild(labelSpan);
     
     // 子節點
-    if (treeData.children && treeData.children.length > 0) {
+    if (hasChildren) {
         const childrenUl = document.createElement('ul');
         childrenUl.className = `tree-children list-none pl-6 mt-1 ${level === 0 ? 'block' : 'hidden'}`;
         
         treeData.children.forEach(child => {
-            const childLi = renderTreeItem(child, level + 1);
-            childrenUl.appendChild(childLi);
+            // 確保所有子項目都能正確渲染，不論是否有自己的子節點
+            if (child) {
+                const childLi = renderTreeItem(child, level + 1);
+                if (childLi) {
+                    childrenUl.appendChild(childLi);
+                } else {
+                    console.warn(`Failed to render child at level ${level + 1}:`, child);
+                }
+            }
         });
         
-        li.appendChild(childrenUl);
-        
-        // 只有目錄才能展開/收合
-        if (treeData.type === 'directory') {
-            li.addEventListener('click', function(e) {
-                // 如果點擊的是 labelSpan，已經處理了載入目錄，不需要展開/收合
-                if (e.target === labelSpan) {
-                    return;
-                }
-                // 如果點擊的是 iconSpan 或其他區域，則展開/收合
-                const children = this.querySelector('.tree-children');
-                if (children) {
-                    children.classList.toggle('hidden');
-                    children.classList.toggle('block');
-                    this.classList.toggle('expanded');
-                }
-            });
+        // 只有當有子節點時才加入
+        if (childrenUl.children.length > 0) {
+            li.appendChild(childrenUl);
+            
+            // 展開/收合按鈕的點擊事件
+            if (expandButton && treeData.type === 'directory') {
+                expandButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isHidden = childrenUl.classList.contains('hidden');
+                    if (isHidden) {
+                        childrenUl.classList.remove('hidden');
+                        childrenUl.classList.add('block');
+                        li.classList.add('expanded');
+                        expandButton.textContent = '−';
+                    } else {
+                        childrenUl.classList.add('hidden');
+                        childrenUl.classList.remove('block');
+                        li.classList.remove('expanded');
+                        expandButton.textContent = '+';
+                    }
+                });
+            }
         }
     }
     
@@ -197,8 +286,26 @@ function renderFileTree(treeData, container = null, level = 0) {
 
 // 渲染樹狀圖項目
 function renderTreeItem(item, level) {
+    if (!item) {
+        console.warn('renderTreeItem: item is null or undefined', level);
+        return null;
+    }
+    
     const li = document.createElement('li');
-    li.className = `tree-item ${item.type} py-1 select-none ${item.type === 'directory' ? 'font-medium cursor-pointer' : 'cursor-default'}`;
+    li.className = `tree-item ${item.type} py-1 select-none whitespace-nowrap ${item.type === 'directory' ? 'font-medium cursor-pointer' : 'cursor-default'}`;
+    
+    // 檢查是否有子節點
+    const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0;
+    
+    // 展開/收合按鈕（僅有子節點的目錄顯示）
+    let expandButton = null;
+    if (hasChildren && item.type === 'directory') {
+        expandButton = document.createElement('span');
+        expandButton.className = 'inline-block w-4 text-center cursor-pointer text-gray-600 hover:text-blue-500 mr-1 select-none';
+        expandButton.textContent = '+';
+        expandButton.style.fontSize = '14px';
+        expandButton.style.lineHeight = '1';
+    }
     
     const icon = item.type === 'directory' ? '📁' : getFileIcon(item.name, item.type);
     const iconSpan = document.createElement('span');
@@ -212,6 +319,7 @@ function renderTreeItem(item, level) {
     // 只有目錄才能點擊載入
     if (item.type === 'directory') {
         labelSpan.style.cursor = 'pointer';
+        // 點擊目錄名稱時，只載入目錄內容
         labelSpan.addEventListener('click', function(e) {
             e.stopPropagation();
             loadDirectory(item.path);
@@ -228,36 +336,53 @@ function renderTreeItem(item, level) {
         });
     }
     
+    // 組裝 DOM 元素
+    if (expandButton) {
+        li.appendChild(expandButton);
+    }
     li.appendChild(iconSpan);
     li.appendChild(labelSpan);
     
-    // 子節點
-    if (item.children && item.children.length > 0) {
+    // 子節點 - 檢查是否有 children 陣列且不為空
+    if (hasChildren) {
         const childrenUl = document.createElement('ul');
         childrenUl.className = 'tree-children list-none pl-6 mt-1 hidden';
         
-        item.children.forEach(child => {
-            const childLi = renderTreeItem(child, level + 1);
-            childrenUl.appendChild(childLi);
+        // 遞迴處理所有子節點
+        item.children.forEach((child, index) => {
+            if (child) {
+                // 確保所有子項目都能正確渲染，不論是否有自己的子節點
+                const childLi = renderTreeItem(child, level + 1);
+                if (childLi) {
+                    childrenUl.appendChild(childLi);
+                } else {
+                    console.warn(`Failed to render child at level ${level + 1}:`, child);
+                }
+            }
         });
         
-        li.appendChild(childrenUl);
-        
-        // 只有目錄才能展開/收合
-        if (item.type === 'directory') {
-            li.addEventListener('click', function(e) {
-                // 如果點擊的是 labelSpan，已經處理了載入目錄，不需要展開/收合
-                if (e.target === labelSpan) {
-                    return;
-                }
-                // 如果點擊的是 iconSpan 或其他區域，則展開/收合
-                const children = this.querySelector('.tree-children');
-                if (children) {
-                    children.classList.toggle('hidden');
-                    children.classList.toggle('block');
-                    this.classList.toggle('expanded');
-                }
-            });
+        // 只有當有子節點時才加入
+        if (childrenUl.children.length > 0) {
+            li.appendChild(childrenUl);
+            
+            // 展開/收合按鈕的點擊事件
+            if (expandButton && item.type === 'directory') {
+                expandButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isHidden = childrenUl.classList.contains('hidden');
+                    if (isHidden) {
+                        childrenUl.classList.remove('hidden');
+                        childrenUl.classList.add('block');
+                        li.classList.add('expanded');
+                        expandButton.textContent = '−';
+                    } else {
+                        childrenUl.classList.add('hidden');
+                        childrenUl.classList.remove('block');
+                        li.classList.remove('expanded');
+                        expandButton.textContent = '+';
+                    }
+                });
+            }
         }
     }
     
@@ -365,4 +490,56 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// 關閉新增資料夾對話框
+function closeCreateFolderModal() {
+    const modal = document.getElementById('createFolderModal');
+    const form = document.getElementById('createFolderForm');
+    modal.classList.add('hidden');
+    form.reset();
+}
+
+// 建立資料夾
+async function createDirectory(folderName) {
+    try {
+        // 取得當前路徑
+        const rootPath = fileTreeData ? fileTreeData.path : '/srv';
+        const relativePath = currentPath.replace(rootPath, '').replace(/^\//, '');
+        
+        const response = await fetch('/api/v1/files/directory', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                path: relativePath || null,
+                name: folderName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.detail || '建立資料夾失敗');
+        }
+        
+        if (data.success) {
+            // 關閉對話框
+            closeCreateFolderModal();
+            
+            // 重新載入檔案列表和樹狀圖
+            await loadFileList(relativePath);
+            await loadFileTree();
+            
+            // 顯示成功訊息（可選）
+            console.log('資料夾建立成功:', data.path);
+        } else {
+            throw new Error(data.message || '建立資料夾失敗');
+        }
+        
+    } catch (error) {
+        console.error('建立資料夾失敗:', error);
+        alert('建立資料夾失敗: ' + error.message);
+    }
 }
