@@ -57,7 +57,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    
+    if (sidebarToggle && sidebar) {
+        // 從 localStorage 讀取上次的狀態
+        const savedState = localStorage.getItem('sidebarCollapsed');
+        if (savedState === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+        
+        sidebarToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleSidebar();
+        });
+    }
 });
+
+// 切換側邊欄顯示/隱藏
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+        // 展開
+        sidebar.classList.remove('collapsed');
+        localStorage.setItem('sidebarCollapsed', 'false');
+    } else {
+        // 收合
+        sidebar.classList.add('collapsed');
+        localStorage.setItem('sidebarCollapsed', 'true');
+    }
+}
 
 // Utility functions
 const utils = {

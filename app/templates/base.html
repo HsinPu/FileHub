@@ -8,6 +8,59 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Sidebar Toggle Styles -->
+    <style>
+        :root {
+            --sidebar-width: 256px; /* md:w-64 = 16rem = 256px */
+        }
+        
+        #sidebar {
+            position: relative;
+        }
+        
+        #sidebar.collapsed {
+            width: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            min-width: 0 !important;
+            border: none !important;
+        }
+        
+        #sidebar.collapsed .sidebar-content {
+            display: none;
+        }
+        
+        #sidebarToggle {
+            position: absolute;
+            top: 0;
+            left: var(--sidebar-width, 256px);
+            z-index: 20;
+            transition: left 0.3s ease-in-out;
+        }
+        
+        #sidebar.collapsed ~ #sidebarToggle {
+            left: 0;
+        }
+        
+        @media (max-width: 768px) {
+            :root {
+                --sidebar-width: 100%;
+            }
+            
+            #sidebar.collapsed {
+                width: 0 !important;
+            }
+            
+            #sidebarToggle {
+                left: calc(100% + 8px);
+            }
+            
+            #sidebar.collapsed ~ #sidebarToggle {
+                left: 8px;
+            }
+        }
+    </style>
+    
     <!-- Page-specific CSS -->
     {% block extra_css %}{% endblock %}
 </head>
@@ -26,9 +79,9 @@
     </nav>
 
     <!-- Main Container -->
-    <div class="flex flex-1 w-full overflow-hidden">
+    <div class="flex flex-1 w-full overflow-hidden relative">
         <!-- Sidebar -->
-        <aside class="sidebar w-full md:w-64 bg-white shadow-sm p-6 h-full overflow-y-auto flex-shrink-0">
+        <aside id="sidebar" class="sidebar w-full md:w-64 bg-white shadow-sm p-6 h-full overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out relative">
             <div class="sidebar-content h-full">
                 {% block sidebar %}
                 <ul class="list-none">
@@ -38,9 +91,17 @@
                 {% endblock %}
             </div>
         </aside>
+        
+        <!-- Toggle Button (放在側邊欄外面) -->
+        <button id="sidebarToggle" class="absolute top-0 w-6 h-10 bg-white border border-gray-300 rounded-r-md shadow-md hover:bg-gray-50 hover:shadow-lg transition-all z-20 flex items-center justify-center cursor-pointer" title="收合/展開側邊欄">
+            <svg class="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="2" y="4" width="6" height="16" rx="1" fill="currentColor" opacity="0.6"/>
+                <rect x="10" y="4" width="12" height="16" rx="1" fill="currentColor"/>
+            </svg>
+        </button>
 
         <!-- Main Content -->
-        <main class="flex-1 min-w-0 overflow-y-auto p-6">
+        <main id="mainContent" class="flex-1 min-w-0 overflow-y-auto p-6 transition-all duration-300 ease-in-out">
             {% block content %}{% endblock %}
         </main>
     </div>
