@@ -2,6 +2,7 @@ import os
 from typing import List, Dict, Optional
 from datetime import datetime
 from pathlib import Path
+from app.utils.log_utils import logger
 
 
 class FileService:
@@ -49,6 +50,7 @@ class FileService:
         try:
             normalized.relative_to(self.root_path)
         except ValueError:
+            logger.error(f"偵測到不安全的路徑訪問嘗試: {path}")
             raise ValueError(f"路徑不安全: {path}")
         
         return normalized
@@ -290,6 +292,7 @@ class FileService:
             
             # 建立資料夾
             new_dir_path.mkdir(parents=False, exist_ok=False)
+            logger.info(f"服務層: 資料夾建立成功: {new_dir_path}")
             
             return {
                 "success": True,

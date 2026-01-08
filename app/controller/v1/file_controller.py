@@ -1,6 +1,7 @@
 from typing import Optional
 from fastapi import HTTPException
 from app.services.file_service import FileService
+from app.utils.log_utils import logger
 
 
 class FileController:
@@ -31,12 +32,16 @@ class FileController:
             return result
             
         except ValueError as e:
+            logger.warning(f"取得檔案列表失敗 (400), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=400, detail=str(e))
         except FileNotFoundError as e:
+            logger.warning(f"取得檔案列表失敗 (404), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=404, detail=str(e))
         except PermissionError as e:
+            logger.error(f"取得檔案列表失敗 (403), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=403, detail=f"沒有讀取權限: {str(e)}")
         except Exception as e:
+            logger.exception(f"取得檔案列表失敗 (500), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")
     
     def get_file_tree(self, path: Optional[str] = None, max_depth: int = 10) -> dict:
@@ -61,10 +66,13 @@ class FileController:
             return result
             
         except ValueError as e:
+            logger.warning(f"取得檔案樹狀結構失敗 (400), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=400, detail=str(e))
         except FileNotFoundError as e:
+            logger.warning(f"取得檔案樹狀結構失敗 (404), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
+            logger.exception(f"取得檔案樹狀結構失敗 (500), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")
     
     def create_directory(self, path: Optional[str] = None, name: str = "") -> dict:
@@ -86,17 +94,23 @@ class FileController:
                 path = ""
             
             result = self.file_service.create_directory(path, name)
+            logger.info(f"建立資料夾成功, 路徑: {path}, 名稱: {name}")
             return result
             
         except ValueError as e:
+            logger.warning(f"建立資料夾失敗 (400), 路徑: {path}, 名稱: {name}, 錯誤: {str(e)}")
             raise HTTPException(status_code=400, detail=str(e))
         except FileNotFoundError as e:
+            logger.warning(f"建立資料夾失敗 (404), 路徑: {path}, 名稱: {name}, 錯誤: {str(e)}")
             raise HTTPException(status_code=404, detail=str(e))
         except FileExistsError as e:
+            logger.warning(f"建立資料夾失敗 (409), 路徑: {path}, 名稱: {name}, 錯誤: {str(e)}")
             raise HTTPException(status_code=409, detail=str(e))
         except PermissionError as e:
+            logger.error(f"建立資料夾失敗 (403), 路徑: {path}, 名稱: {name}, 錯誤: {str(e)}")
             raise HTTPException(status_code=403, detail=f"沒有寫入權限: {str(e)}")
         except Exception as e:
+            logger.exception(f"建立資料夾失敗 (500), 路徑: {path}, 名稱: {name}, 錯誤: {str(e)}")
             raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")
     
     def get_file_content(self, path: str) -> dict:
@@ -117,10 +131,14 @@ class FileController:
             return result
             
         except ValueError as e:
+            logger.warning(f"取得檔案內容失敗 (400), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=400, detail=str(e))
         except FileNotFoundError as e:
+            logger.warning(f"取得檔案內容失敗 (404), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=404, detail=str(e))
         except PermissionError as e:
+            logger.error(f"取得檔案內容失敗 (403), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=403, detail=f"沒有讀取權限: {str(e)}")
         except Exception as e:
+            logger.exception(f"取得檔案內容失敗 (500), 路徑: {path}, 錯誤: {str(e)}")
             raise HTTPException(status_code=500, detail=f"伺服器錯誤: {str(e)}")

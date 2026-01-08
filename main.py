@@ -5,9 +5,14 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from typing import Optional
 import os
+from app.utils.log_utils import logger
 
 # 建立 FastAPI 應用
 app = FastAPI(title="Files-App", description="檔案管理系統")
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Files-App 啟動中...")
 
 # 設定靜態檔案目錄
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -58,6 +63,7 @@ async def api_get_file_list(path: Optional[str] = Query(None, description="相�
     Returns:
         JSON 格式的檔案列表
     """
+    logger.info(f"API 請求: 取得檔案列表, 路徑: {path or '根目錄'}")
     result = file_controller.get_file_list(path)
     return JSONResponse(content=result)
 
@@ -77,6 +83,7 @@ async def api_get_file_tree(
     Returns:
         JSON 格式的檔案樹狀結構
     """
+    logger.info(f"API 請求: 取得檔案樹狀結構, 路徑: {path or '根目錄'}, 最大深度: {max_depth}")
     result = file_controller.get_file_tree(path, max_depth)
     return JSONResponse(content=result)
 
@@ -92,6 +99,7 @@ async def api_create_directory(request: CreateDirectoryRequest):
     Returns:
         JSON 格式的建立結果
     """
+    logger.info(f"API 請求: 建立資料夾, 路徑: {request.path or '根目錄'}, 名稱: {request.name}")
     result = file_controller.create_directory(request.path, request.name)
     return JSONResponse(content=result)
 
@@ -107,6 +115,7 @@ async def api_get_file_content(path: str = Query(..., description="檔案相對�
     Returns:
         JSON 格式的檔案內容
     """
+    logger.info(f"API 請求: 取得檔案內容, 路徑: {path}")
     result = file_controller.get_file_content(path)
     return JSONResponse(content=result)
 
