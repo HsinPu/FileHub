@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}登入 - Files-App{% endblock %}
+
+{% block navbar %}
+<!-- 登入頁面不顯示導航列 -->
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sidebar, #sidebarToggle {
+        display: none !important;
+    }
+
+    /* Toast 動畫 */
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+
+    .toast-enter {
+        animation: slideIn 0.3s ease-out forwards;
+    }
+
+    .toast-exit {
+        animation: slideOut 0.3s ease-in forwards;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+<!-- 登入頁面隱藏側邊欄 -->
+{% endblock %}
+
+{% block content %}
+<!-- Toast 容器 -->
+<div id="toastContainer" class="fixed top-4 right-4 z-[100] flex flex-col gap-3 min-w-[300px]"></div>
+
+<div class="max-w-md mx-auto mt-12">
+    <div class="bg-white rounded-lg shadow-md p-8">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-blue-500 mb-2">Files-App</h2>
+            <p class="text-gray-500" id="formTitle">請登入您的帳號</p>
+        </div>
+
+        <!-- 登入表單 -->
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label for="loginUsername" class="block text-sm font-medium text-gray-700 mb-1">帳號</label>
+                <input type="text" id="loginUsername" name="username" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+            <div>
+                <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-1">密碼</label>
+                <input type="password" id="loginPassword" name="password" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+            <button type="submit"
+                class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors shadow-md">
+                登入
+            </button>
+            <p class="text-center text-sm text-gray-500">
+                還沒有帳號？ <a href="#" id="showRegister" class="text-blue-500 hover:underline">立即註冊</a>
+            </p>
+        </form>
+
+        <!-- 註冊表單 (預設隱藏) -->
+        <form id="registerForm" class="space-y-6 hidden">
+            <div>
+                <label for="regUsername" class="block text-sm font-medium text-gray-700 mb-1">帳號</label>
+                <input type="text" id="regUsername" name="username" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+            <div>
+                <label for="regFullName" class="block text-sm font-medium text-gray-700 mb-1">全名 (選填)</label>
+                <input type="text" id="regFullName" name="full_name"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+            <div>
+                <label for="regPassword" class="block text-sm font-medium text-gray-700 mb-1">密碼</label>
+                <input type="password" id="regPassword" name="password" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+            <div>
+                <label for="regConfirmPassword" class="block text-sm font-medium text-gray-700 mb-1">確認密碼</label>
+                <input type="password" id="regConfirmPassword" name="confirm_password" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+            </div>
+            <button type="submit"
+                class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors shadow-md">
+                註冊
+            </button>
+            <p class="text-center text-sm text-gray-500">
+                已有帳號？ <a href="#" id="showLogin" class="text-blue-500 hover:underline">返回登入</a>
+            </p>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/auth.js"></script>
+{% endblock %}

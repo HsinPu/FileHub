@@ -75,7 +75,7 @@ function closeViewFileModal() {
 async function loadFileList(path = '') {
     try {
         const url = path ? `/api/v1/files?path=${encodeURIComponent(path)}` : '/api/v1/files';
-        const response = await fetch(url);
+        const response = await authenticatedFetch(url);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -96,7 +96,7 @@ async function loadFileList(path = '') {
 // 載入檔案樹狀圖
 async function loadFileTree() {
     try {
-        const response = await fetch('/api/v1/files/tree?max_depth=20');
+        const response = await authenticatedFetch('/api/v1/files/tree?max_depth=20');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -450,7 +450,7 @@ async function viewFile(path, type) {
     
     try {
         // 呼叫 API 取得檔案內容
-        const response = await fetch(`/api/v1/files/content?path=${encodeURIComponent(relativePath)}`);
+        const response = await authenticatedFetch(`/api/v1/files/content?path=${encodeURIComponent(relativePath)}`);
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -608,7 +608,7 @@ async function createDirectory(folderName) {
         const rootPath = fileTreeData ? fileTreeData.path : '/srv';
         const relativePath = currentPath.replace(rootPath, '').replace(/^\//, '');
         
-        const response = await fetch('/api/v1/files/directory', {
+        const response = await authenticatedFetch('/api/v1/files/directory', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -8,10 +8,41 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Auth Check (Early Redirect) -->
+    <script>
+        (function() {
+            const token = localStorage.getItem('access_token');
+            const path = window.location.pathname;
+            const isAuthPage = path === '/login' || path.endsWith('/login');
+            
+            // 檢查 Token 是否存在且不為 "undefined" 或 "null" 字串
+            const hasToken = token && token !== 'undefined' && token !== 'null';
+            
+            if (!hasToken && !isAuthPage) {
+                window.location.href = '/login';
+            }
+        })();
+    </script>
+    
     <!-- Sidebar Toggle Styles -->
     <style>
         :root {
             --sidebar-width: 256px; /* md:w-64 = 16rem = 256px */
+        }
+
+        /* 自定義捲軸樣式 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
         }
         
         #sidebar {
@@ -66,17 +97,22 @@
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-full flex flex-col">
     <!-- Navigation Bar -->
+    {% block navbar %}
     <nav class="bg-white shadow-sm z-50 py-4 flex-shrink-0">
         <div class="w-full px-6 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="navbar-brand">
                 <h1 class="text-2xl font-semibold text-blue-500">Files-App</h1>
             </div>
-            <ul class="flex flex-col md:flex-row gap-2 md:gap-8 list-none">
+            <ul class="flex flex-col md:flex-row gap-2 md:gap-8 list-none items-center" id="navLinks">
                 <li><a href="/" class="text-gray-800 font-medium hover:text-blue-500 hover:bg-gray-50 px-4 py-2 rounded-lg transition-all">首頁</a></li>
                 <li><a href="/files" class="text-gray-800 font-medium hover:text-blue-500 hover:bg-gray-50 px-4 py-2 rounded-lg transition-all">檔案列表</a></li>
+                <li id="authNav">
+                    <!-- 這裡會由 JavaScript 動態插入登入/登出按鈕 -->
+                </li>
             </ul>
         </div>
     </nav>
+    {% endblock %}
 
     <!-- Main Container -->
     <div class="flex flex-1 w-full overflow-hidden relative">
@@ -111,5 +147,85 @@
     
     <!-- Page-specific JavaScript -->
     {% block extra_js %}{% endblock %}
+
+    <!-- 設定視窗 Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-[100] hidden">
+        <!-- 遮罩背景 -->
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="toggleSettingsModal()"></div>
+        
+        <!-- 彈窗主體 -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-xl shadow-2xl overflow-hidden flex h-[500px]">
+            <!-- 左側選單 (30%) -->
+            <aside class="w-[30%] bg-gray-50 border-r border-gray-200 p-4">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-2">設定選單</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <button onclick="switchSettingsTab('account')" class="settings-tab-btn w-full text-left px-4 py-2 rounded-lg transition-colors bg-blue-50 text-blue-600 font-medium" data-tab="account">
+                            帳號設定
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="switchSettingsTab('system')" class="settings-tab-btn w-full text-left px-4 py-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-100" data-tab="system">
+                            系統偏好
+                        </button>
+                    </li>
+                </ul>
+            </aside>
+
+            <!-- 右側內容 (70%) -->
+            <main class="w-[70%] p-8 flex flex-col overflow-y-auto custom-scrollbar">
+                <div class="flex justify-between items-start mb-6 flex-shrink-0">
+                    <h2 id="settingsTitle" class="text-2xl font-bold text-gray-800">帳號設定</h2>
+                    <button onclick="toggleSettingsModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 帳號設定內容 -->
+                <div id="accountSettings" class="settings-content-panel space-y-6">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <p class="text-sm text-blue-700">當前登入身分</p>
+                        <p id="currentUserDisplay" class="text-lg font-bold text-blue-900">載入中...</p>
+                    </div>
+
+                    <!-- 修改密碼區塊 -->
+                    <div class="space-y-4 p-4 border border-gray-100 rounded-lg">
+                        <h4 class="font-bold text-gray-700 border-b pb-2">設定新密碼</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">新密碼</label>
+                                <input type="password" id="newPassword" placeholder="輸入至少 8 位新密碼" 
+                                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">確認新密碼</label>
+                                <input type="password" id="confirmNewPassword" placeholder="再次輸入新密碼" 
+                                    class="w-full px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                            <button onclick="handleUpdatePassword()" class="w-full py-2 bg-blue-500 text-white text-sm font-bold rounded-md hover:bg-blue-600 transition-colors shadow-sm">
+                                更新密碼
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-6 border-t border-gray-100">
+                        <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition-colors border border-red-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            登出系統
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 系統偏好內容 (目前空白) -->
+                <div id="systemSettings" class="settings-content-panel hidden space-y-4 text-gray-500 italic">
+                    此功能開發中...
+                </div>
+            </main>
+        </div>
+    </div>
 </body>
 </html>
