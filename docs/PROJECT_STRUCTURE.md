@@ -1,162 +1,100 @@
-# Files-App
+# 專案架構
 
-## 專案結構
-
-```
-<Files-App>/
-│
-├── main.py                 # 主程式入口
-├── requirements.txt        # 專案依賴套件清單
-├── setup.py               # 安裝腳本
-├── .env                   # 環境變數設定檔
-├── .gitignore            # Git 忽略檔案清單
-│
-├── logs/                  # 日誌檔案目錄
-│   ├── app.log           # 應用程式日誌
-│   └── error.log         # 錯誤日誌
-│
-├── resources/            # 資源檔案目錄
-│   ├── downloads/        # 下載的資料檔案
-│   ├── fonts/           # 字形檔案
-│   │   ├── zh/          # 中文字形
-│   │   └── en/          # 英文字形
-│   ├── audio/           # 音訊檔案
-│   │   ├── music/       # 背景音樂
-│   │   └── effects/     # 音效
-│   ├── images/          # 圖片資源
-│   │   ├── icons/       # 圖示
-│   │   ├── backgrounds/ # 背景圖片
-│   │   └── assets/      # 其他圖片資源
-│   └── data/            # 預設資料檔案
-│       ├── config/      # 預設設定檔
-│       ├── examples/    # 範例資料
-│       └── references/  # 參考檔案
-│
-├── database/            # 資料庫相關檔案
-│   ├── migrations/      # 資料庫遷移檔案
-│   └── seeds/          # 資料庫種子資料
-│
-├── docs/               # 文件目錄
-│   ├── api/           # API 文件
-│   ├── design/        # 設計文件
-│   └── guides/        # 使用指南
-│
-├── config/            # 設定檔目錄
-│   ├── dev.yaml      # 開發環境設定
-│   ├── prod.yaml     # 生產環境設定
-│   └── test.yaml     # 測試環境設定
-│
-├── i18n/              # 多語系翻譯檔案
-│   ├── en/           # 英文翻譯
-│   └── zh/           # 中文翻譯
-│
-├── cache/            # 快取資料目錄
-│   ├── temp/        # 臨時檔案
-│   └── api/         # API 快取
-│
-└── app/             # 應用程式主要程式碼
-    ├── models/      # 資料模型
-    │   ├── base.py  # 基礎模型
-    │   └── user.py  # 使用者模型
-    │
-    ├── services/    # 服務層
-    │   ├── auth.py  # 認證服務
-    │   └── api.py   # API 服務
-    │
-    ├── controller/  # 控制器層
-    │   ├── base.py  # 基礎控制器
-    │   └── user.py  # 使用者控制器
-    │
-    ├── utils/       # 工具函式
-    │   ├── logger.py    # 日誌工具
-    │   ├── validator.py # 驗證工具
-    │   └── helpers.py   # 輔助函式
-    │
-    ├── static/      # 靜態資源
-    │   ├── css/     # 樣式表
-    │   ├── js/      # JavaScript 檔案
-    │   └── img/     # 圖片資源
-    │
-    └── templates/   # 模板檔案
-        ├── base.html    # 基礎模板
-        └── pages/       # 頁面模板
+```text
+Files-App/
+├─ frontend/
+│  ├─ src/app/                   # 路由、登入狀態入口
+│  ├─ src/features/auth/         # 登入、密碼設定、AuthProvider
+│  ├─ src/features/files/        # 檔案列表、目錄樹與預覽
+│  ├─ src/lib/api.ts             # 同源 API client、Zod 回應驗證
+│  ├─ src/styles.css             # 共用版面與響應式樣式
+│  └─ tests/                     # Playwright 真實瀏覽器驗收
+├─ backend/
+│  ├─ app/main.py                # application factory、lifespan、錯誤及靜態資源
+│  ├─ app/api/routes/            # auth / files 路由
+│  ├─ app/api/dependencies.py    # DB session 與目前使用者
+│  ├─ app/schemas/               # 請求／回應模型
+│  ├─ app/services/files.py      # 根目錄安全、列表、建目錄、預覽
+│  ├─ app/services/transfers.py  # 串流上傳、命名驗證、原子不覆寫重新命名
+│  ├─ app/services/operations.py # 單一背景批次工作者、逐項紀錄與取消
+│  ├─ app/services/trash.py      # 垃圾桶搬移／還原與重啟核對
+│  ├─ app/services/folder_uploads.py # 上傳階層驗證、批次映射與重送保護
+│  ├─ app/services/archives.py   # ZIP 串流打包、容量與到期清理
+│  ├─ app/db/migrations.py       # 版本 2 任務、版本 3 垃圾桶、版本 4 上傳批次
+│  ├─ app/core/                  # 設定、密碼／JWT、登入節流、領域錯誤
+│  ├─ app/models/                # 相容舊 users 表及新增 sessions 表
+│  ├─ app/db/                    # SQLAlchemy engine 與 session factory
+│  ├─ app/cli.py                 # 本機首次帳號設定
+│  ├─ app/launcher.py            # loopback 啟動與瀏覽器就緒檢查
+│  └─ tests/                     # API／資料相容／檔案邊界測試
+├─ database/                     # 既有帳號資料，不納入 Git
+├─ config/                       # 本機隨機金鑰，不納入 Git
+├─ srv/                          # 預設管理檔案目錄，不納入 Git
+├─ main.py                       # 舊啟動指令相容入口
+├─ setup.bat                     # 安裝、建置、初始帳號設定
+└─ start_files_app.bat            # 本機啟動
 ```
 
-## 目錄說明
+## 資料流
 
-### 主要檔案
-- `main.py`：主程式入口點，負責啟動應用程式
-- `requirements.txt`：專案依賴套件清單
-- `setup.py`：安裝腳本，用於打包和發布
-- `.env`：環境變數設定檔，存放敏感資訊
-- `.gitignore`：Git 忽略檔案清單
+React 元件 → API client → FastAPI router → 檔案服務／帳號資料庫。
+路由負責 HTTP 契約，檔案服務負責路徑與檔案操作，Pydantic 與 Zod 分別驗證後端及前端邊界。
+阻塞式檔案與資料庫操作使用同步路由，由 FastAPI 的執行緒池執行。
+切換目錄與預覽時取消舊請求，避免舊結果覆蓋新畫面。
 
-### 日誌目錄 (`logs/`)
-- 存放應用程式運行時產生的日誌檔案
-- 包含一般日誌和錯誤日誌
-- 建議實作日誌輪替機制
+## API v1
 
-### 資源目錄 (`resources/`)
-- `downloads/`：存放下載的資料檔案
-- `fonts/`：專案使用的字形檔案
-- `audio/`：音訊檔案（背景音樂、音效等）
-- `images/`：圖片資源（圖示、背景等）
-- `data/`：預設資料檔案（設定檔、範例資料、參考檔案等）
+| 方法 | 路徑 | 請求／結果 |
+| --- | --- | --- |
+| POST | `/api/v1/auth/login` | `{username,password}` → `{username,full_name}`，設定 Cookie |
+| GET | `/api/v1/auth/me` | 目前帳號 |
+| POST | `/api/v1/auth/logout` | 撤銷目前登入 |
+| PUT | `/api/v1/auth/password` | `{current_password,new_password}`，撤銷所有登入 |
+| GET | `/api/v1/files?path=` | `{path,entries}`，一層目錄內容 |
+| GET | `/api/v1/files/tree?path=` | `{path,entries}`，一層子資料夾 |
+| POST | `/api/v1/files/directory` | `{path,name}` → 新建 FileEntry，201 |
+| GET | `/api/v1/files/content?path=` | `{name,path,type,size,content,mime_type}` |
+| GET／HEAD | `/api/v1/files/image?path=` | 驗證登入及副檔名後串流圖片，10 MB 上限 |
+| GET／HEAD | `/api/v1/files/pdf?path=` | PDF 簽章／大小驗證，支援 Range；50 MB 上限 |
+| POST | `/api/v1/files/upload-batch` | `{request_id,destination,conflict,entries:[{path,size?}]}` → source/target/status 映射；size 省略表示目錄 |
+| POST | `/api/v1/files/upload?path=&name=` | 原始二進位 body，上限 512 MB → FileEntry，201 |
+| PATCH | `/api/v1/files/rename` | `{path,name}` → FileEntry，不覆寫，衝突 409 |
+| GET／HEAD | `/api/v1/files/download?path=` | 單檔 attachment，支援串流下載 |
+| POST | `/api/v1/files/operations` | `{request_id,kind,paths,destination,conflict}` → 任務，202 |
+| GET | `/api/v1/files/operations?offset=0` | 目前帳號任務，每頁 50 筆 |
+| GET | `/api/v1/files/operations/{id}` | 逐項狀態與結果；僅擁有者可讀 |
+| POST | `/api/v1/files/operations/{id}/cancel` | 要求取消剩餘操作 |
+| GET／HEAD | `/api/v1/files/operations/{id}/archive` | 擁有者下載已完成 ZIP；過期回應 410 |
+| GET | `/api/v1/trash?offset=0` | 共用垃圾桶，每頁 50 筆 |
+| POST | `/api/v1/trash/restore` | `{request_id,ids,destination?,conflict}` → 還原任務，202；null 目的地為原位置 |
+| GET | `/api/health` | `{status:"ok"}` |
 
-### 資料庫目錄 (`database/`)
-- `migrations/`：資料庫結構變更記錄
-- `seeds/`：初始資料和測試資料
+所有檔案 API 都需要登入；每個寫入要求包含 `X-Requested-With: Files-App`。
+批次任務的 request_id 使用 UUID，重送相同內容取得原任務，不同內容回報 409。kind 為 copy／move／trash／restore／archive，conflict 為 skip／keep_both。任務背景執行並保存於 SQLite；API 202 代表已接受，不代表檔案已完成操作。
+FileEntry 為 `{name,path,type,size,modified}`；type 是 `directory` 或 `file`，size 是位元組或 null，modified 是含時區的 ISO 時間。
+API path 為根目錄內的相對路徑，使用 `/`，根目錄為空字串。不回傳伺服器絕對路徑。
+文字 content 是文字，圖片 content 是 Base64；前端只透過文字節點或 img 顯示，沒有 HTML 注入。
+錯誤格式為 `{error:{code,message}}`；包含 400、401、403、404、409、413、415、422、429。
 
-### 文件目錄 (`docs/`)
-- `api/`：API 文件和使用說明
-- `design/`：系統設計文件
-- `guides/`：使用指南和教學文件
+## 維護
 
-### 設定檔目錄 (`config/`)
-- 存放不同環境的設定檔
-- 包含開發、測試和生產環境的設定
-- 集中管理所有應用程式設定
+第四階段新增 `services/access.py` 統一根目錄與權限檢查，`models/access.py` 帳號政策／管理紀錄、`models/share.py` 分享紀錄；`routes/accounts.py` 管理 API、`routes/shares.py` 分享與公開下載入口。資料庫版本 5 遷移既有帳號為管理員，版本 6 建立分享表。
 
-### 多語系目錄 (`i18n/`)
-- 存放不同語言的翻譯檔案
-- 支援多語言切換功能
+| 方法 | 路徑 | 用途 |
+| --- | --- | --- |
+| GET／POST | `/api/v1/admin/accounts` | 管理員列表／建立帳號，列表 offset、每頁 100 筆 |
+| PUT | `/api/v1/admin/accounts/{id}` | 帳號設定、角色、範圍、權限；撤銷登入 |
+| POST | `/api/v1/admin/accounts/{id}/password` | 重設密碼並要求首次修改 |
+| POST | `/api/v1/admin/accounts/{id}/revoke-sessions` | 撤銷登入 |
+| GET | `/api/v1/admin/audit` | 管理紀錄，offset、每頁 100 筆 |
+| GET／POST | `/api/v1/shares` | 列表／建立分享；token 只在建立時回傳 |
+| POST | `/api/v1/shares/{id}/revoke` | 擁有者或管理員撤銷 |
+| POST | `/api/v1/public-shares/open` | token、選填 password；回傳公開資訊及短期下載 Cookie |
+| GET／HEAD | `/api/v1/public-shares/download/{id}` | 需短期 Cookie，逐次重新驗證分享 |
 
-### 快取目錄 (`cache/`)
-- 存放應用程式的快取資料
-- 包含臨時檔案和 API 快取
+`/auth/login` 與 `/auth/me` 額外回傳 role、permissions、must_change_password。一般檔案 API path 改為相對於登入者根目錄。詳細規則見 PHASE4.md。
 
-### 應用程式目錄 (`app/`)
-- `models/`：資料模型定義
-- `services/`：業務邏輯層
-- `controller/`：控制器層
-- `utils/`：工具函式
-- `static/`：靜態資源
-- `templates/`：模板檔案
+前端依賴由 package-lock.json 鎖定；後端 requirements.in 宣告直接依賴，requirements.txt 鎖定正式依賴，requirements-dev.txt 加入測試工具。
+更新後端鎖定檔可使用 `uv pip compile backend/requirements.in --universal -o backend/requirements.txt`，再對開發檔加上正式鎖定檔 constraint。
 
-## 使用建議
-
-1. **環境設定**
-   - 使用 `.env` 檔案管理環境變數
-   - 不同環境使用不同的設定檔
-   - 所有設定檔統一存放在 `config` 目錄
-
-2. **資源管理**
-   - 大型資源檔案建議使用 Git LFS
-   - 定期清理快取和臨時檔案
-   - 資源檔案按類型分類存放
-   - 參考檔案統一存放在 `resources/data/references/` 目錄
-
-3. **程式碼組織**
-   - 遵循模組化設計原則
-   - 保持目錄結構清晰
-   - 適當使用註解和文件
-
-4. **安全性**
-   - 敏感資訊存放在 `.env` 檔案
-   - 確保 `.gitignore` 正確設定
-   - 定期更新依賴套件
-
-5. **維護性**
-   - 保持文件更新
-   - 實作適當的日誌機制
-   - 遵循程式碼規範
+實作參考：[Ant Design + Vite](https://ant.design/docs/react/use-with-vite/)、[FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/)。

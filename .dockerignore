@@ -1,0 +1,21 @@
+# Allow only the source inputs needed to produce the image.
+**
+!Dockerfile
+!.dockerignore
+!backend/
+!backend/__init__.py
+!backend/requirements.txt
+!backend/app/
+!backend/app/**
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/tsconfig.json
+!frontend/vite.config.ts
+!frontend/src/
+!frontend/src/**
+**/__pycache__/
+**/*.pyc
+**/.env
+**/.env.*

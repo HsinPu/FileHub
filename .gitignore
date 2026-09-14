@@ -19,10 +19,18 @@ ENV/
 # Git
 .git/
 
-# Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
+# Generated local state
+.SymbolLattice/
+.pytest_cache/
+.ruff_cache/
+.cache/
+backups/
+config/session.key
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/*.tsbuildinfo
 
 # Logs
 logs/
@@ -39,6 +47,7 @@ cache/
 # Database
 database/*.db
 database/*.sqlite
+database/*.db-*
 
 # OS
 .DS_Store
@@ -46,3 +55,5 @@ Thumbs.db
 
 # Files root directory (mounted volume)
 srv/
+# Generated PDF character maps and fonts
+frontend/public/pdfjs/
