@@ -1136,3 +1136,36 @@ button:focus-visible {
     gap: 6px;
   }
 }
+
+.ant-modal.fullscreen-preview {
+  top: 0;
+  margin: 0;
+  padding-bottom: 0;
+  max-width: 100vw;
+  height: 100dvh;
+}
+.fullscreen-preview .ant-modal-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 0;
+}
+.fullscreen-preview .ant-modal-header,
+.fullscreen-preview .ant-modal-footer {
+  flex-shrink: 0;
+}
+.fullscreen-preview .ant-modal-title {
+  padding-right: 32px;
+  overflow-wrap: anywhere;
+}
+.fullscreen-preview .text-preview {
+  max-height: none;
+  min-height: calc(100dvh - 180px);
+}
+.fullscreen-preview .image-preview {
+  max-height: calc(100dvh - 220px);
+  margin-inline: auto;
+}
+.fullscreen-preview .preview-meta {
+  overflow-wrap: anywhere;
+}

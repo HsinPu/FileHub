@@ -491,10 +491,22 @@ export function FilesPage() {
       ),
     },
     {
+      title: "建立時間",
+      dataIndex: "created",
+      key: "created",
+      width: 175,
+      responsive: ["lg"],
+      render: (value) => (
+        <span className="cell-muted">
+          {value ? formatDate(value) : "未提供"}
+        </span>
+      ),
+    },
+    {
       title: "修改時間",
       dataIndex: "modified",
       key: "modified",
-      width: 215,
+      width: 175,
       responsive: ["lg"],
       render: (value) => (
         <span className="cell-muted">{dateFormat.format(new Date(value))}</span>
@@ -1336,6 +1348,13 @@ export function FilesPage() {
                   key: "size",
                   label: "大小",
                   children: formatSize(details.size),
+                },
+                {
+                  key: "created",
+                  label: "建立時間",
+                  children: details.created
+                    ? formatDate(details.created)
+                    : "檔案系統未提供",
                 },
                 {
                   key: "modified",

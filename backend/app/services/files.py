@@ -1,6 +1,7 @@
 import base64
 import re
 import stat
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path, PureWindowsPath
 
@@ -65,12 +66,23 @@ class FileService:
     def entry(self, path: Path) -> FileEntry:
         info = path.stat()
         directory = stat.S_ISDIR(info.st_mode)
+        born = getattr(info, "st_birthtime", None)
+        if born is None:
+            try:
+                result = subprocess.run(
+                    ["stat", "--format=%W", "--", str(path)],
+                    capture_output=True, text=True, timeout=1, check=True,
+                )
+                born = int(result.stdout.strip()) or None
+            except (OSError, ValueError, subprocess.SubprocessError):
+                born = None
         return FileEntry(
             name=path.name,
             path=path.relative_to(self.root).as_posix(),
             type="directory" if directory else "file",
             size=None if directory else info.st_size,
             modified=datetime.fromtimestamp(info.st_mtime, UTC).isoformat(),
+            created=datetime.fromtimestamp(born, UTC).isoformat() if born else None,
         )
 
     def list_directory(self, path: str = "", directories_only: bool = False) -> DirectoryListing:

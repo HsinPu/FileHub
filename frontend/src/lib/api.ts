@@ -61,6 +61,7 @@ export const entrySchema = z.object({
   type: z.enum(["directory", "file"]),
   size: z.number().nullable(),
   modified: z.string(),
+  created: z.string().nullable().optional(),
 });
 export const listingSchema = z.object({
   path: z.string(),

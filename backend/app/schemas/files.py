@@ -9,6 +9,7 @@ class FileEntry(BaseModel):
     type: Literal["directory", "file"]
     size: int | None
     modified: str
+    created: str | None = None
 
 
 class DirectoryListing(BaseModel):

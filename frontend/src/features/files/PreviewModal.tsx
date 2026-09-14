@@ -67,7 +67,9 @@ export function PreviewModal({
           </Button>
         </>
       }
-      width={900}
+      width="100%"
+      className="fullscreen-preview"
+      styles={{ body: { overflow: "auto", flex: 1, minHeight: 0 } }}
       destroyOnHidden
     >
       <div className="preview-meta">
