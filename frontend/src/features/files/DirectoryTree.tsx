@@ -1,3 +1,4 @@
+import { useAuth } from "../auth/AuthProvider";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Tree, Spin } from "antd";
 import type { DataNode } from "antd/es/tree";
@@ -28,6 +29,8 @@ export function DirectoryTree({
   path?: string;
   onSelect: (path: string) => void;
 }) {
+  const { user } = useAuth();
+  const rootLabel = user?.scope_mode === "multiple" ? "所有目錄" : "所有檔案";
   const [nodes, setNodes] = useState<DataNode[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<React.Key[]>([""]);
@@ -42,7 +45,7 @@ export function DirectoryTree({
       .then((result) =>
         setNodes([
           {
-            title: "所有檔案",
+            title: rootLabel,
             key: "",
             icon: <FolderOutlined />,
             children: result.entries.map((entry) => ({
@@ -60,7 +63,7 @@ export function DirectoryTree({
       alive.current = false;
       controller.abort();
     };
-  }, [retry]);
+  }, [retry, rootLabel]);
   async function loadData(node: DataNode) {
     try {
       const result = await api(

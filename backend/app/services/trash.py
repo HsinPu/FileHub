@@ -3,7 +3,7 @@
 import time
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from backend.app.core.errors import AppError
 from backend.app.models.operation import TrashItem
@@ -48,7 +48,7 @@ class TrashService:
             raise AppError(403, "UNSAFE_TRASH", "垃圾桶項目不安全。")
         return path
 
-    def list(self, offset=0, owner=None, root=None):
+    def list(self, offset=0, owner=None, root=None, roots=None):
         with self.factory() as db:
             query = select(TrashItem).where(TrashItem.status != "restored")
             if owner is not None:
@@ -57,6 +57,10 @@ class TrashService:
                 query = query.where(
                     TrashItem.original_path.startswith(root.rstrip("/") + "/", autoescape=True)
                 )
+            if roots is not None:
+                if not roots:
+                    return []
+                query = query.where(or_(*(TrashItem.original_path.startswith(path.rstrip("/") + "/", autoescape=True) for path in roots)))
             records = db.scalars(query.order_by(TrashItem.deleted_at.desc()).offset(offset).limit(50))
             return [
                 {
@@ -114,6 +118,7 @@ class TrashService:
         operations.snapshot(source, job.id)
         operations.check_cancel(job.id)
         with MUTATION_LOCK:
+            operations.check_cancel(job.id)
             source = self.files.resolve(item["source"])
             payload_id = uuid4().hex
             target = self.payload(payload_id, create=True)
@@ -148,6 +153,7 @@ class TrashService:
     def restore(self, operations, job, index, item):
         operations.check_cancel(job.id)
         with MUTATION_LOCK, self.factory() as db:
+            operations.check_cancel(job.id)
             record = db.get(TrashItem, item["source"])
             if not record or record.status != "available":
                 raise AppError(409, "TRASH_UNAVAILABLE", "項目已還原或需要維護者檢查。")

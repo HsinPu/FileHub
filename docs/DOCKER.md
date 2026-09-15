@@ -1,13 +1,13 @@
 # Docker 執行
 
 需求：Docker Engine / Docker Desktop（Linux containers）與 Docker Compose。
-在 `Files-App` 儲存庫根目錄執行以下指令，不需要在主機安裝 Node 或 Python。
+在 `FileHub` 儲存庫根目錄執行以下指令，不需要在主機安裝 Node 或 Python。
 
 ## 第一次使用
 
 ```powershell
 docker compose up -d --build --wait
-docker compose exec files-app python -m backend.app.cli bootstrap
+docker compose exec filehub python -m backend.app.cli bootstrap
 ```
 
 第二個指令會互動要求帳號與密碼。既有帳號不會被覆寫，密碼不會輸出到日誌。
@@ -43,7 +43,7 @@ COOKIE_SECURE=false
 ```powershell
 docker compose up -d --build --wait
 docker compose ps
-docker compose logs --tail 100 files-app
+docker compose logs --tail 100 filehub
 docker compose stop
 docker compose start
 ```
@@ -59,8 +59,8 @@ docker compose start
 ```powershell
 docker compose stop
 New-Item -ItemType Directory -Force backups/database, backups/config
-docker compose cp files-app:/app/database/. ./backups/database/
-docker compose cp files-app:/app/config/. ./backups/config/
+docker compose cp filehub:/app/database/. ./backups/database/
+docker compose cp filehub:/app/config/. ./backups/config/
 docker compose start
 ```
 
@@ -76,8 +76,8 @@ docker compose start
 
 ```powershell
 docker compose create
-docker compose cp ./database/users.db files-app:/app/database/users.db
-docker compose run --rm --no-deps --user 0 --cap-add CHOWN files-app chown 1000:1000 /app/database/users.db
+docker compose cp ./database/users.db filehub:/app/database/users.db
+docker compose run --rm --no-deps --user 0 --cap-add CHOWN filehub chown 1000:1000 /app/database/users.db
 docker compose up -d --wait
 ```
 
@@ -104,3 +104,11 @@ Docker Desktop Linux/amd64 實際建置成功。隔離 Compose 測試確認 UID 
 docker compose build
 .\.venv\Scripts\python.exe -m backend.tests.docker_smoke
 ```
+
+## FileHub 更名升級
+
+服務名稱由 `files-app` 改為 `filehub`，映像由 `files-app:local` 改為 `filehub:local`。現有部署須先用舊版 Compose 停止舊服務，再使用新版啟動，避免兩個服務同時寫入同一份資料；切勿使用 `down -v`。
+
+沿用原 Compose 專案名稱、`database` 與 `config` 資料卷，以及原主機掛載路徑。若日後搬動或重新命名專案目錄，請使用 `-p <原專案名稱>` 或設定 `COMPOSE_PROJECT_NAME`，並核對現有資料卷；不要讓目錄改名建立另一組空白資料卷。
+
+本次更名不搬移 SQLite、金鑰或回收桶，也不修改登入與上傳的內部格式。歷史紀錄中的舊映像標籤保持原樣。上方歷史 Docker 驗證不代表 FileHub 更名版本已完成 Docker 實測。

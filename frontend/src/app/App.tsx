@@ -61,6 +61,7 @@ function AuthenticatedRoutes() {
         "/settings/profile",
         "/settings/security",
         "/settings/accounts",
+        "/settings/directories",
       ].includes(location.pathname) ? (
         <Navigate to={`/files${location.search}`} replace />
       ) : location.pathname === "/admin" ? (

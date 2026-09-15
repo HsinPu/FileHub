@@ -19,6 +19,7 @@ class Settings:
     frontend_dist: Path
     secure_cookie: bool = False
     session_hours: int = 24
+    directories_json: str = "[]"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -44,4 +45,5 @@ class Settings:
             secret_key=key,
             frontend_dist=PROJECT_ROOT / "frontend/dist",
             secure_cookie=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+            directories_json=os.getenv("FILES_DIRECTORIES", "[]"),
         )

@@ -63,6 +63,14 @@ class FileService:
             raise AppError(403, "OUTSIDE_ROOT", "無法存取根目錄以外的檔案。")
         return resolved
 
+    def assert_movable(self, target: Path):
+        base = getattr(self, "base", self)
+        if target.is_mount() or any(
+            root == target or root.is_relative_to(target)
+            for root in getattr(base, "deployment_roots", ())
+        ):
+            raise AppError(400, "MOUNT_ROOT", "不能重新命名、搬移或刪除部署目錄；請進入目錄操作檔案。")
+
     def entry(self, path: Path) -> FileEntry:
         info = path.stat()
         directory = stat.S_ISDIR(info.st_mode)
@@ -131,6 +139,8 @@ class FileService:
         child = self.resolve(f"{path}/{name}" if path else name)
         try:
             with MUTATION_LOCK:
+                self.resolve(path)
+                child = self.resolve(f"{path}/{name}" if path else name)
                 child.mkdir()
         except FileExistsError:
             raise AppError(409, "ALREADY_EXISTS", "同名檔案或資料夾已存在。") from None

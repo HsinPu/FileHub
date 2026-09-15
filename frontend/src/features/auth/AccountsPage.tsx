@@ -1,12 +1,17 @@
+import PermissionPicker from "./PermissionPicker";
+import DirectoryGrantEditor from "./DirectoryGrantEditor";
 import { ResizableDrawer } from "../../app/ResizableDrawer";
 import { useEffect, useRef, useState } from "react";
 import { useUnsavedChanges } from "./useUnsavedChanges";
 import { DirectoryTree } from "../files/DirectoryTree";
 import {
+  directoryStatusLabels,
+  directoryStatusSchema,
+} from "./DirectoriesPage";
+import {
   Alert,
   App,
   Button,
-  Checkbox,
   Form,
   Input,
   Modal,
@@ -38,16 +43,18 @@ const accountSchema = z.object({
   root: z.string().nullable(),
   permissions: z.array(z.string()),
   must_change_password: z.boolean(),
+  scope_mode: z.enum(["single", "multiple"]).default("single"),
+  directory_grants: z
+    .array(
+      z.object({
+        directory_id: z.string(),
+        permissions: z.array(z.string()),
+        directory_path: z.string().optional(),
+      }),
+    )
+    .default([]),
 });
 type Account = z.infer<typeof accountSchema>;
-const options = [
-  { label: "瀏覽", value: "browse" },
-  { label: "讀取內容／下載", value: "read" },
-  { label: "上傳／建目錄", value: "upload" },
-  { label: "修改／搬移", value: "modify" },
-  { label: "移至垃圾桶", value: "delete" },
-  { label: "分享", value: "share" },
-];
 
 export default function AccountsPage({
   onFormState,
@@ -83,6 +90,7 @@ export default function AccountsPage({
   const { message, modal } = App.useApp();
   const currentRole = Form.useWatch("role", form);
   const accountEnabled = Form.useWatch("enabled", form);
+  const scopeMode = Form.useWatch("scope_mode", form);
   const clearFilters = () => {
     setSearch("");
     setSearchInput("");
@@ -142,7 +150,13 @@ export default function AccountsPage({
     form.resetFields();
     form.setFieldsValue(
       account === "new"
-        ? { role: "user", enabled: false, permissions: [] }
+        ? {
+            role: "user",
+            enabled: false,
+            permissions: [],
+            scope_mode: "single",
+            directory_grants: [],
+          }
         : account,
     );
     initialValues.current = JSON.stringify(form.getFieldsValue(true));
@@ -337,7 +351,9 @@ export default function AccountsPage({
               responsive: ["lg"],
               ellipsis: true,
               render: (_, a: Account) =>
-                a.role === "admin" || a.root === "" ? (
+                a.scope_mode === "multiple" && a.role !== "admin" ? (
+                  `${a.directory_grants.length} 個授權目錄`
+                ) : a.role === "admin" || a.root === "" ? (
                   "所有檔案"
                 ) : (
                   <Tooltip title={a.root}>
@@ -517,47 +533,108 @@ export default function AccountsPage({
             ) : (
               <>
                 <h3 className="account-section-title">存取範圍</h3>
-                <Form.Item
-                  name="root"
-                  label="指定根目錄"
-                  dependencies={["enabled", "role"]}
-                  rules={[
-                    {
-                      validator: (_, value) =>
-                        currentRole === "user" &&
-                        accountEnabled &&
-                        value == null
-                          ? Promise.reject(new Error("啟用前請先指定根目錄"))
-                          : Promise.resolve(),
-                    },
-                  ]}
-                >
-                  <RootPicker disabled={busy} />
-                </Form.Item>
-                <h3 className="account-section-title">操作權限</h3>
-                <Form.Item
-                  name="permissions"
-                  label="一般使用者權限"
-                  dependencies={["enabled", "role"]}
-                  rules={[
-                    {
-                      validator: (_, value: string[] = []) =>
-                        accountEnabled && !value.includes("browse")
-                          ? Promise.reject(new Error("啟用前請勾選瀏覽權限"))
-                          : value.includes("share") && !value.includes("read")
-                            ? Promise.reject(new Error("分享需要讀取內容權限"))
-                            : Promise.resolve(),
-                    },
-                  ]}
-                >
-                  <Checkbox.Group
-                    className="account-permissions"
-                    options={options}
+                <Form.Item name="scope_mode" label="存取模式">
+                  <Select
+                    options={[
+                      { value: "single", label: "單一根目錄" },
+                      { value: "multiple", label: "多目錄授權" },
+                    ]}
                   />
                 </Form.Item>
-                <p className="muted">
-                  讀取包含預覽與下載；複製需要讀取及上傳；還原需要上傳；分享需要讀取及分享權限。
-                </p>
+                {scopeMode === "multiple" ? (
+                  <Form.Item
+                    name="directory_grants"
+                    label="目錄授權"
+                    rules={[
+                      {
+                        validator: (
+                          _,
+                          value: {
+                            directory_id: string;
+                            permissions: string[];
+                          }[] = [],
+                        ) => {
+                          if (accountEnabled && !value.length)
+                            return Promise.reject(
+                              new Error("啟用前請至少授權一個目錄"),
+                            );
+                          if (
+                            value.some((g) => !g.directory_id) ||
+                            new Set(value.map((g) => g.directory_id)).size !==
+                              value.length
+                          )
+                            return Promise.reject(
+                              new Error("請選擇目錄，且不可重複授權"),
+                            );
+                          if (
+                            value.some(
+                              (g) =>
+                                !g.permissions.includes("browse") ||
+                                (g.permissions.includes("share") &&
+                                  !g.permissions.includes("read")),
+                            )
+                          )
+                            return Promise.reject(
+                              new Error(
+                                "每個目錄需有瀏覽權限；分享還需要讀取內容權限",
+                              ),
+                            );
+                          return Promise.resolve();
+                        },
+                      },
+                    ]}
+                  >
+                    <DirectoryGrantEditor />
+                  </Form.Item>
+                ) : (
+                  <>
+                    <Form.Item
+                      name="root"
+                      label="指定根目錄"
+                      dependencies={["enabled", "role"]}
+                      rules={[
+                        {
+                          validator: (_, value) =>
+                            currentRole === "user" &&
+                            accountEnabled &&
+                            value == null
+                              ? Promise.reject(
+                                  new Error("啟用前請先指定根目錄"),
+                                )
+                              : Promise.resolve(),
+                        },
+                      ]}
+                    >
+                      <RootPicker disabled={busy} />
+                    </Form.Item>
+                    <h3 className="account-section-title">操作權限</h3>
+                    <Form.Item
+                      name="permissions"
+                      label="一般使用者權限"
+                      dependencies={["enabled", "role"]}
+                      rules={[
+                        {
+                          validator: (_, value: string[] = []) =>
+                            accountEnabled && !value.includes("browse")
+                              ? Promise.reject(
+                                  new Error("啟用前請勾選瀏覽權限"),
+                                )
+                              : value.includes("share") &&
+                                  !value.includes("read")
+                                ? Promise.reject(
+                                    new Error("分享需要讀取內容權限"),
+                                  )
+                                : Promise.resolve(),
+                        },
+                      ]}
+                    >
+                      <PermissionPicker />
+                    </Form.Item>
+                    <p className="muted">
+                      讀取包含預覽與下載；複製需要讀取及上傳；還原需要上傳；分享需要讀取及分享權限。
+                    </p>
+                  </>
+                )}
               </>
             )}
           </Form>
@@ -627,6 +704,31 @@ function RootPicker({
   disabled?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [status, setStatus] = useState("");
+  useEffect(() => {
+    if (value == null) {
+      setStatus("");
+      return;
+    }
+    const controller = new AbortController();
+    setStatus("正在檢查目錄…");
+    api(
+      `/admin/directory-status?path=${encodeURIComponent(value)}`,
+      directoryStatusSchema,
+      { signal: controller.signal },
+    )
+      .then((result) => {
+        if (!controller.signal.aborted)
+          setStatus(
+            `${directoryStatusLabels[result.status]}${result.status === "readable" ? "；登入後此資料夾會成為使用者根目錄。" : "；請重新選擇或聯絡部署者。"}`,
+          );
+      })
+      .catch((reason) => {
+        if (!controller.signal.aborted)
+          setStatus(`目錄檢查失敗：${errorMessage(reason)}`);
+      });
+    return () => controller.abort();
+  }, [value]);
   return (
     <div className="root-picker" inert={disabled}>
       <Input
@@ -652,6 +754,11 @@ function RootPicker({
             }}
           />
         </div>
+      )}
+      {status && (
+        <p className="muted" role="status">
+          {status}
+        </p>
       )}
     </div>
   );

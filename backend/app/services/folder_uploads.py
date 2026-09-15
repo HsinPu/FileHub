@@ -29,6 +29,7 @@ def prepare(operations, user_id, data):
             **data.model_dump(mode="json"),
             "scope": str(files.root),
             "version": getattr(files, "version", None),
+            **({"access_context": files.context} if len(getattr(files, "context", [])) > 2 else {}),
         },
         sort_keys=True,
         ensure_ascii=False,
@@ -36,14 +37,14 @@ def prepare(operations, user_id, data):
     # Namespace idempotency keys by authenticated owner.
     key = f"{user_id}:{data.request_id}"
     with MUTATION_LOCK, operations.factory() as db:
+        parent = files.resolve(data.destination)
+        if not parent.is_dir():
+            raise AppError(404, "NOT_FOUND", "目的資料夾不存在。")
         batch = db.get(UploadBatch, key)
         if batch:
             if batch.payload != payload or batch.status != "ready":
                 raise AppError(409, "BATCH_CONFLICT", "此批次內容不同或曾中斷，請重新選取並確認目錄狀態。")
             return {"entries": batch.entries}
-        parent = files.resolve(data.destination)
-        if not parent.is_dir():
-            raise AppError(404, "NOT_FOUND", "目的資料夾不存在。")
         if sum(entry.size or 0 for entry in data.entries) > 5 * 1024**3:
             raise AppError(413, "BATCH_TOO_LARGE", "單批資料夾上傳上限為 5 GB。")
         nodes = {}

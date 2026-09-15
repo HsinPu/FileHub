@@ -1,4 +1,4 @@
-# Files-App
+# FileHub
 
 React + TypeScript + Ant Design 的檔案工作空間，搭配 FastAPI 與 SQLite。
 提供登入、目錄樹、搜尋、縮圖與 PDF 預覽、資料夾上傳、ZIP 打包下載、重新命名、批次複製搬移、垃圾桶還原與剪貼簿操作。
@@ -9,11 +9,12 @@ React + TypeScript + Ant Design 的檔案工作空間，搭配 FastAPI 與 SQLit
 
 ```powershell
 docker compose up -d --build --wait
-docker compose exec files-app python -m backend.app.cli bootstrap
+docker compose exec filehub python -m backend.app.cli bootstrap
 ```
 
 設定初始帳號後，開啟 [http://127.0.0.1:9005](http://127.0.0.1:9005)。主機 `srv/` 是管理的檔案目錄，帳號與金鑰保存於 Docker volumes。
 設定掛載路徑、備份與既有帳號搬移請見 [Docker 說明](docs/DOCKER.md)。
+Linux 多目錄掛載、管理員目錄狀態、帳號多目錄授權與操作權限請見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
 
 ## Windows 快速開始
 
@@ -21,9 +22,9 @@ docker compose exec files-app python -m backend.app.cli bootstrap
 
 1. 在本專案執行 `setup.bat`，安裝專案專用 `.venv` 與前端依賴、建置前端。
 2. 若沒有帳號，依提示建立第一個帳號；密碼需 8–128 字元，不會顯示或寫入日誌。
-3. 雙擊 `start_files_app.bat`。預設啟動 `http://127.0.0.1:8000`，服務就緒後開啟瀏覽器。
+3. 雙擊 `start_filehub.bat`。預設啟動 `http://127.0.0.1:8000`，服務就緒後開啟瀏覽器。
 4. 將要管理的檔案放入 `srv/`，或在 `.env` 設定 `FILES_ROOT`。
-5. 在啟動視窗按 Ctrl+C 停止。若連接埠已被占用，設定另一個 `FILES_APP_PORT`；不會停止其他程式。
+5. 在啟動視窗按 Ctrl+C 停止。若連接埠已被占用，設定另一個 `FILEHUB_PORT`；不會停止其他程式。
 
 後續修改前端後，重新執行 `setup.bat` 更新建置。既有帳號會保留。
 
@@ -67,8 +68,8 @@ Linux/macOS 使用 `python3 -m venv .venv` 與 `.venv/bin/python`，其餘 npm �
 | `DATABASE_PATH` | 專案 `database/users.db`，沿用舊版帳號 |
 | `SECRET_KEY` | 未提供時產生隨機金鑰，保存在 `config/session.key` |
 | `COOKIE_SECURE` | 本機 HTTP 為 `false`；HTTPS 部署設為 `true` |
-| `FILES_APP_PORT` | 本機啟動器使用 `8000` |
-| `FILES_APP_OPEN_BROWSER` | `true`；設為 `false` 不自動開啟瀏覽器 |
+| `FILEHUB_PORT` | 本機啟動器使用 `8000` |
+| `FILEHUB_OPEN_BROWSER` | `true`；設為 `false` 不自動開啟瀏覽器 |
 
 相對檔案系統路徑固定以儲存庫根目錄解析，不受啟動位置影響。
 請保存 `config/session.key`；替換它會讓所有登入失效。Windows 下金鑰與資料庫依賴帳號目錄的 NTFS 權限保護。
@@ -124,3 +125,11 @@ npm run test:e2e
 若需回復，使用獨立舊版 checkout 搭配升級前的資料庫備份；新版 Argon2 密碼不能交給舊版 passlib 設定驗證。
 
 架構與 API 見 [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)，改版驗收見 [docs/MIGRATION.md](docs/MIGRATION.md)。
+
+## FileHub 更名相容性
+
+產品名稱已由 Files-App 改為 FileHub。新入口為 `start_filehub.bat`，舊的 `start_files_app.bat` 仍可使用。
+新的 `FILEHUB_PORT`、`FILEHUB_OPEN_BROWSER` 優先於舊的 `FILES_APP_PORT`、`FILES_APP_OPEN_BROWSER`；未設定新名稱時沿用舊值。
+登入 Cookie、JWT issuer、寫入要求識別、回收桶與上傳暫存格式保留原名稱，以維持既有資料相容性。
+Docker 服務改名為 `filehub`、映像改為 `filehub:local`；已有部署請先閱讀 [更名升級說明](docs/DOCKER.md#filehub-更名升級)。
+本機目錄與 GitHub 儲存庫尚未更名。

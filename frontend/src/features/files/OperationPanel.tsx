@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { useAuth } from "../auth/AuthProvider";
 import { PanelSurface } from "../../app/PanelSurface";
 import { formatDate } from "../../lib/date";
 import { useEffect, useRef, useState } from "react";
@@ -29,7 +31,10 @@ import {
 
 type Dialog = {
   kind: OperationKind;
-  entries: (Pick<FileEntry, "path" | "type"> & { name?: string })[];
+  entries: (Pick<FileEntry, "path" | "type"> & {
+    name?: string;
+    originalPath?: string;
+  })[];
   destination: string | null;
   requestId: string;
 };
@@ -38,6 +43,12 @@ export function useOperations(
   onChange: (jobs: Operation[]) => void,
   embedded = false,
 ) {
+  const { user } = useAuth();
+  const rootLabel = user?.scope_mode === "multiple" ? "所有目錄" : "所有檔案";
+  const [destinationCheck, setDestinationCheck] = useState<{
+    key: string;
+    error: string;
+  } | null>(null);
   const [jobs, setJobs] = useState<Operation[]>([]);
   const [open, setOpen] = useState(false);
   const [dialog, setDialog] = useState<Dialog | null>(null);
@@ -92,6 +103,67 @@ export function useOperations(
     setError(null);
     setDialog({ kind, entries, destination, requestId: crypto.randomUUID() });
   }
+  const destinations =
+    dialog && ["copy", "move", "restore"].includes(dialog.kind)
+      ? dialog.destination !== null
+        ? [dialog.destination]
+        : [
+            ...new Set(
+              dialog.entries.map((entry) =>
+                (entry.originalPath ?? "").split("/").slice(0, -1).join("/"),
+              ),
+            ),
+          ]
+      : [];
+  const destinationKey = destinations.length
+    ? JSON.stringify([dialog?.kind, destinations])
+    : null;
+  useEffect(() => {
+    if (!destinationKey || !dialog) {
+      setDestinationCheck(null);
+      return;
+    }
+    const controller = new AbortController();
+    setDestinationCheck(null);
+    const required =
+      dialog.kind === "move"
+        ? user?.scope_mode === "multiple"
+          ? ["modify", "upload"]
+          : ["modify"]
+        : ["upload"];
+    Promise.all(
+      destinations.map((path) =>
+        api(
+          `/files/capabilities?path=${encodeURIComponent(path)}`,
+          z.object({ permissions: z.array(z.string()) }),
+          { signal: controller.signal },
+        ),
+      ),
+    )
+      .then((results) => {
+        if (!controller.signal.aborted)
+          setDestinationCheck({
+            key: destinationKey,
+            error: results.every(({ permissions }) =>
+              required.every((p) => permissions.includes(p)),
+            )
+              ? ""
+              : "此目的地沒有所需權限，請選擇其他目錄。",
+          });
+      })
+      .catch((reason) => {
+        if (!controller.signal.aborted)
+          setDestinationCheck({
+            key: destinationKey,
+            error: errorMessage(reason),
+          });
+      });
+    return () => controller.abort();
+  }, [destinationKey, user?.scope_mode]);
+  const destinationPending =
+    !!destinationKey && destinationCheck?.key !== destinationKey;
+  const destinationError =
+    destinationCheck?.key === destinationKey ? destinationCheck?.error : "";
   const invalid =
     dialog &&
     dialog.kind !== "trash" &&
@@ -104,7 +176,8 @@ export function useOperations(
           dialog.destination?.startsWith(`${entry.path}/`)),
     );
   async function submit() {
-    if (!dialog || busy || invalid) return;
+    if (!dialog || busy || invalid || destinationPending || destinationError)
+      return;
     setBusy(true);
     setError(null);
     try {
@@ -164,12 +237,16 @@ export function useOperations(
         confirmLoading={busy}
         okText="確認執行"
         cancelText="取消"
-        okButtonProps={{ disabled: !!invalid }}
+        okButtonProps={{
+          disabled: !!invalid || destinationPending || !!destinationError,
+        }}
         cancelButtonProps={{ disabled: busy }}
         closable={!busy}
         maskClosable={!busy}
         destroyOnHidden
       >
+        {destinationPending && <p role="status">正在檢查目的地權限…</p>}
+        {destinationError && <Alert type="warning" title={destinationError} />}
         {dialog && (
           <>
             <p>
@@ -212,7 +289,7 @@ export function useOperations(
                   <>
                     <Breadcrumb
                       items={[
-                        { title: "所有檔案" },
+                        { title: rootLabel },
                         ...dialog.destination
                           .split("/")
                           .filter(Boolean)
@@ -220,7 +297,7 @@ export function useOperations(
                       ]}
                     />
                     <p className="operation-path">
-                      目的地：{dialog.destination || "所有檔案"}
+                      目的地：{dialog.destination || rootLabel}
                     </p>
                     <div className="destination-tree">
                       <DirectoryTree

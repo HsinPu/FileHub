@@ -4,7 +4,7 @@ from backend.app.api.dependencies import current_user
 from backend.app.core.errors import AppError
 from backend.app.models.user import User
 from backend.app.schemas.operations import OperationRequest, OperationResult, RestoreRequest, TrashResult
-from backend.app.services.access import local_path, require, submit_job
+from backend.app.services.access import granted_roots, is_multiple, local_path, require, submit_job
 
 router = APIRouter(prefix="/trash", tags=["trash"])
 
@@ -17,7 +17,8 @@ def listing(request: Request, offset: int = Query(0, ge=0), user: User = Depends
     for record in request.app.state.operations.trash.list(
         offset,
         owner=user.username if access.role != "admin" else None,
-        root=access.root if access.role != "admin" else None,
+        root=access.root if access.role != "admin" and not is_multiple(access) else None,
+        roots=granted_roots(request.app.state.files, access) if is_multiple(access) else None,
     ):
         if access.role != "admin" and record["deleted_by"] != user.username:
             continue

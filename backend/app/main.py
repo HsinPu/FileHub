@@ -14,6 +14,7 @@ from backend.app.core.config import PROJECT_ROOT, Settings
 from backend.app.core.errors import AppError
 from backend.app.core.security import LoginLimiter
 from backend.app.db.session import open_database
+from backend.app.services.directories import definitions
 from backend.app.services.files import FileService
 from backend.app.services.operations import OperationService
 
@@ -46,6 +47,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         ) + (config.database_path, config.database_path.parent / "archives")
         app.state.files = FileService(config.files_root, protected)
+        app.state.directories = definitions(app.state.files, config.directories_json)
+        app.state.files.deployment_roots = tuple(
+            app.state.files.resolve(entry.path) for entry in app.state.directories
+        )
+        app.state.files.directory_catalog = {entry.id: entry.path for entry in app.state.directories}
         app.state.settings = config
         app.state.engine, app.state.session_factory = open_database(config.database_path)
         app.state.login_limiter = LoginLimiter()
@@ -59,7 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             await run_in_threadpool(app.state.operations.close)
             app.state.engine.dispose()
 
-    app = FastAPI(title="Files-App", version="2.0.0", lifespan=lifespan)
+    app = FastAPI(title="FileHub", version="2.0.0", lifespan=lifespan)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -132,7 +138,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def frontend(path: str):
         if path == "api" or path.startswith("api/"):
             raise HTTPException(404)
-        if path not in {"", "files", "login", "admin", "share", "shares", "trash", "settings/profile", "settings/security", "settings/accounts"}:
+        if path not in {"", "files", "login", "admin", "share", "shares", "trash", "settings/profile", "settings/security", "settings/accounts", "settings/directories"}:
             raise HTTPException(404)
         if not (dist / "index.html").is_file():
             return error_response(503, "FRONTEND_NOT_BUILT", "前端尚未建置，請先執行 npm run build。")

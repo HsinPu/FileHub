@@ -1169,3 +1169,7 @@ button:focus-visible {
 .fullscreen-preview .preview-meta {
   overflow-wrap: anywhere;
 }
+
+.directory-grant-row { padding-block: 16px; border-bottom: 1px solid var(--workspace-border); }
+.directory-grant-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 12px; }
+.directory-grants > button { margin-top: 12px; }

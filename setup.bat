@@ -31,4 +31,4 @@ if errorlevel 1 (
 popd
 ".venv\Scripts\python.exe" -m backend.app.cli bootstrap
 if errorlevel 1 exit /b 1
-echo Setup complete. Run start_files_app.bat to start Files-App.
+echo Setup complete. Run start_filehub.bat to start FileHub.

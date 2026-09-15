@@ -17,6 +17,7 @@ class UserInfo(BaseModel):
     role: str
     permissions: list[str]
     must_change_password: bool
+    scope_mode: str = "single"
 
 
 class Message(BaseModel):

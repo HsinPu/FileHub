@@ -52,6 +52,7 @@ export const userSchema = z.object({
   role: z.enum(["admin", "user"]),
   permissions: z.array(z.string()),
   must_change_password: z.boolean(),
+  scope_mode: z.enum(["single", "multiple"]).default("single"),
 });
 export const messageSchema = z.object({ message: z.string() });
 export type User = z.infer<typeof userSchema>;
@@ -66,6 +67,7 @@ export const entrySchema = z.object({
 export const listingSchema = z.object({
   path: z.string(),
   entries: z.array(entrySchema),
+  permissions: z.array(z.string()).default([]),
 });
 export const previewSchema = z.object({
   name: z.string(),

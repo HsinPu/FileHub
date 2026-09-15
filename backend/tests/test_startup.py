@@ -71,14 +71,33 @@ def test_launcher_reports_occupied_port_without_stopping_service(startup_env):
         assert listener.getsockname()[1] > 0
 
 
+@pytest.mark.parametrize("new_settings", [False, True])
+def test_launcher_settings_compatibility_and_precedence(startup_env, new_settings):
+    from backend.app.launcher import main
+
+    env = {**startup_env, "FILES_APP_PORT": "8001", "FILES_APP_OPEN_BROWSER": "false"}
+    if new_settings:
+        env.update(FILEHUB_PORT="8002", FILEHUB_OPEN_BROWSER="true")
+    with (
+        patch.dict(os.environ, env, clear=True),
+        patch("backend.app.launcher.socket.socket"),
+        patch("backend.app.launcher.threading.Thread") as thread,
+        patch("backend.app.launcher.uvicorn.run") as run,
+    ):
+        main()
+    assert run.call_args.kwargs["port"] == (8002 if new_settings else 8001)
+    assert thread.called == new_settings
+
+
 @pytest.mark.skipif(os.name != "nt", reason="Windows BAT launcher")
-def test_windows_bat_serves_new_frontend_with_isolated_database(startup_env):
+@pytest.mark.parametrize("script", ["start_files_app.bat", "start_filehub.bat"])
+def test_windows_bat_serves_new_frontend_with_isolated_database(startup_env, script):
     assert bootstrap(startup_env).returncode == 0
     with socket.socket() as check:
         check.bind(("127.0.0.1", 0))
         port = check.getsockname()[1]
     process = subprocess.Popen(
-        [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", "start_files_app.bat"],
+        [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", script],
         cwd=PROJECT_ROOT,
         env={**startup_env, "FILES_APP_PORT": str(port)},
         stdin=subprocess.DEVNULL,

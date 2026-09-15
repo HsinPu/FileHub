@@ -1,5 +1,6 @@
 import { ResizableDrawer } from "../../app/ResizableDrawer";
 import AccountsPage from "../auth/AccountsPage";
+import DirectoriesPage from "../auth/DirectoriesPage";
 import { ProfileSettings, SecuritySettings } from "../auth/PersonalSettings";
 import { formatDate } from "../../lib/date";
 import { useEffect, useRef, useState } from "react";
@@ -114,6 +115,9 @@ export function FilesPage() {
   const [sort, setSort] = useState("name");
   const anchor = useRef<string | null>(null);
   const [entries, setEntries] = useState<FileEntry[]>([]);
+  const [directoryPermissions, setDirectoryPermissions] = useState<string[]>(
+    [],
+  );
   const [loadedPath, setLoadedPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,8 +157,10 @@ export function FilesPage() {
     setRevision((v) => v + 1);
   }, true);
   const { user, logout } = useAuth();
+  const rootLabel = user?.scope_mode === "multiple" ? "所有目錄" : "所有檔案";
   const can = (permission: string) =>
-    user?.role === "admin" || !!user?.permissions.includes(permission);
+    user?.role === "admin" ||
+    (loadedPath === path && directoryPermissions.includes(permission));
   const { message, modal } = App.useApp();
   const screens = Grid.useBreakpoint();
   useEffect(() => {
@@ -231,6 +237,7 @@ export function FilesPage() {
       .then((result) => {
         if (controller.signal.aborted) return;
         setEntries(result.entries);
+        setDirectoryPermissions(result.permissions);
         setLoadedPath(result.path);
       })
       .catch((error) => {
@@ -322,8 +329,8 @@ export function FilesPage() {
   function paste() {
     if (
       clipboard.clipboard?.mode === "move"
-        ? !can("modify")
-        : !(can("read") && can("upload"))
+        ? !(can("modify") && (user?.scope_mode !== "multiple" || can("upload")))
+        : !can("upload")
     )
       return;
     if (clipboard.clipboard && !loading && !error)
@@ -393,7 +400,7 @@ export function FilesPage() {
         {
           key: "copy",
           label: "複製到…",
-          disabled: !(can("read") && can("upload")),
+          disabled: !can("read"),
         },
         { key: "move", label: "移動到…", disabled: !can("modify") },
         {
@@ -569,7 +576,7 @@ export function FilesPage() {
     {
       title: (
         <button className="crumb-button" onClick={() => navigate("")}>
-          <HomeOutlined /> 所有檔案
+          <HomeOutlined /> {rootLabel}
         </button>
       ),
     },
@@ -604,6 +611,11 @@ export function FilesPage() {
             path: "/settings/accounts",
             label: "帳號管理",
             icon: <SettingOutlined aria-hidden />,
+          },
+          {
+            path: "/settings/directories",
+            label: "目錄管理",
+            icon: <FolderOutlined aria-hidden />,
           },
         ]
       : []),
@@ -650,7 +662,7 @@ export function FilesPage() {
           <>
             <div className="workspace-label">工作空間</div>
             <Link
-              aria-label="所有檔案"
+              aria-label={rootLabel}
               className={`nav-item ${isFiles ? "active" : ""}`}
               aria-current={isFiles ? "page" : undefined}
               to={
@@ -660,7 +672,7 @@ export function FilesPage() {
               }
             >
               <FolderOpenOutlined aria-hidden />
-              所有檔案
+              {rootLabel}
             </Link>
             <Link
               aria-label="分享管理"
@@ -770,7 +782,7 @@ export function FilesPage() {
             <span className="brand-icon">
               <FolderOpenOutlined />
             </span>
-            <strong>Files</strong>
+            <strong>FileHub</strong>
             <span className="brand-caption">檔案工作空間</span>
           </div>
         </div>
@@ -849,6 +861,16 @@ export function FilesPage() {
           {accountsOpen && user?.role === "admin" && (
             <AccountsPage onFormState={setSettingsForm} />
           )}
+          {location.pathname === "/settings/directories" &&
+            (user?.role === "admin" ? (
+              <DirectoriesPage />
+            ) : (
+              <Result
+                status="403"
+                title="無權限管理目錄"
+                subTitle="此功能僅供管理員使用。"
+              />
+            ))}
           {location.pathname === "/settings/profile" && <ProfileSettings />}
           {location.pathname === "/settings/security" && (
             <SecuritySettings onFormState={setSettingsForm} />
@@ -877,7 +899,9 @@ export function FilesPage() {
             onClose={() => navigate(path)}
             revision={revision}
             mode="page"
-            canRestore={can("upload")}
+            canRestore={
+              user?.role === "admin" || !!user?.permissions.includes("upload")
+            }
             onRestore={(items) =>
               operations.begin(
                 "restore",
@@ -885,6 +909,7 @@ export function FilesPage() {
                   path: item.id,
                   type: item.kind,
                   name: item.original_path,
+                  originalPath: item.original_path,
                 })),
                 null,
               )
@@ -895,7 +920,7 @@ export function FilesPage() {
               <Breadcrumb items={crumbs} />
               <div className="page-heading">
                 <Typography.Title level={1}>
-                  {path ? path.split("/").at(-1) : "所有檔案"}
+                  {path ? path.split("/").at(-1) : rootLabel}
                 </Typography.Title>
               </div>
               <input
@@ -1291,7 +1316,7 @@ export function FilesPage() {
               )}
               {!can("upload") && (
                 <p className="workspace-note">
-                  目前帳號無上傳權限；其他操作依帳號設定。
+                  目前目錄無上傳權限；其他操作依授權設定。
                 </p>
               )}
               {clipboard.clipboard && (
@@ -1305,8 +1330,11 @@ export function FilesPage() {
                       loading ||
                       !!error ||
                       (clipboard.clipboard.mode === "move"
-                        ? !can("modify")
-                        : !(can("read") && can("upload")))
+                        ? !(
+                            can("modify") &&
+                            (user?.scope_mode !== "multiple" || can("upload"))
+                          )
+                        : !can("upload"))
                     }
                     onClick={paste}
                   >

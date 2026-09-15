@@ -16,7 +16,7 @@ from sqlalchemy import select
 
 from backend.app.core.errors import AppError
 from backend.app.models.operation import Operation, TrashItem
-from backend.app.services.access import authorize_job, policy, scope_root
+from backend.app.services.access import access_context, authorize_job, policy
 from backend.app.services.archives import ArchiveService
 from backend.app.services.transfers import MUTATION_LOCK, TEMP_PREFIX, rename_no_replace, validate_name
 from backend.app.services.trash import TrashService
@@ -147,6 +147,8 @@ class OperationService:
                 source = self.files.resolve(raw)
                 if source == self.files.root:
                     raise AppError(400, "ROOT_OPERATION", "不能操作根目錄。")
+                if data.kind in {"move", "trash"}:
+                    self.files.assert_movable(source)
                 if source not in paths:
                     paths.append(source)
             if data.kind != "restore":
@@ -195,7 +197,7 @@ class OperationService:
             )
             access = policy(db, user_id)
             for item in items:
-                item["access_context"] = [access.version, str(scope_root(self.files, access))]
+                item["access_context"] = access_context(self.files, access)
             job.items = items
             authorize_job(self.files, db, job)
             db.add(job)
@@ -346,6 +348,8 @@ class OperationService:
                     raise AppError(409, "SOURCE_CHANGED", "來源在複製期間變更，請重試。")
 
     def execute(self, job, index, item):
+        if job.kind in {"move", "trash"}:
+            self.files.assert_movable(self.files.resolve(item["source"]))
         if job.kind != "restore" and item.get("source_identity") is not None:
             source = self.files.resolve(item["source"])
             if identity(source) != item["source_identity"]:
@@ -379,6 +383,7 @@ class OperationService:
                 self.copy_tree(source, temporary, before, job.id)
             self.check_cancel(job.id)
             with MUTATION_LOCK:
+                self.check_cancel(job.id)
                 self.files.resolve(item["source"])
                 self.files.resolve(job.destination or "")
                 if identity(parent)[:2] != parent_identity or self.snapshot(source, job.id) != before:

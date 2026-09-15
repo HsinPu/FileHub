@@ -15,6 +15,7 @@ class FileEntry(BaseModel):
 class DirectoryListing(BaseModel):
     path: str
     entries: list[FileEntry]
+    permissions: list[str] = Field(default_factory=list)
 
 
 class CreateDirectory(BaseModel):

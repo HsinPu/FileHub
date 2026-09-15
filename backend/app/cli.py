@@ -13,7 +13,7 @@ from backend.app.models.user import User
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create the first Files-App account locally.")
+    parser = argparse.ArgumentParser(description="Create the first FileHub account locally.")
     parser.add_argument("command", choices=["bootstrap"])
     parser.parse_args()
     config = Settings.from_env()

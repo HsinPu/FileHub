@@ -18,7 +18,7 @@ from backend.tests.pdf_fixture import sample_pdf
 
 
 def main():
-    project = "files-app-smoke-" + uuid4().hex[:12]
+    project = "filehub-smoke-" + uuid4().hex[:12]
     cache = (PROJECT_ROOT / ".cache").resolve()
     cache.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="docker-smoke-", dir=cache) as temporary:
@@ -52,7 +52,7 @@ def main():
 
         try:
             compose("up", "-d", "--no-build", "--wait")
-            assert compose("exec", "-T", "files-app", "id", "-u").stdout.strip() == "1000"
+            assert compose("exec", "-T", "filehub", "id", "-u").stdout.strip() == "1000"
             password = secrets.token_urlsafe(20)
             # The account exists only in this test's isolated Compose volume.
             seed = f"""
@@ -70,7 +70,7 @@ with factory() as db:
     db.commit()
 engine.dispose()
 """
-            compose("exec", "-T", "files-app", "python", "-", input=seed)
+            compose("exec", "-T", "filehub", "python", "-", input=seed)
             with httpx.Client(
                 base_url=f"http://127.0.0.1:{port}", headers={"X-Requested-With": "Files-App"}, timeout=10
             ) as client:

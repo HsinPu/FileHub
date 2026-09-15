@@ -11,7 +11,7 @@ from backend.app.core.config import PROJECT_ROOT, Settings
 from backend.app.core.security import password_hash
 from backend.app.db.session import open_database
 from backend.app.main import create_app
-from backend.app.models.access import PERMISSIONS, AccountAccess
+from backend.app.models.access import PERMISSIONS, AccountAccess, DirectoryGrant
 from backend.app.models.user import User
 from backend.tests.pdf_fixture import sample_pdf
 
@@ -31,9 +31,9 @@ def main():
         (root / "中文 O'Brien" / "O'Brien.txt").write_text(
             "特殊檔名測試 <script>alert(1)</script>", encoding="utf-8"
         )
-        (root / "開始使用.txt").write_text("歡迎使用 Files。\n這是隔離的瀏覽器測試資料。", encoding="utf-8")
+        (root / "開始使用.txt").write_text("歡迎使用 FileHub。\n這是隔離的瀏覽器測試資料。", encoding="utf-8")
         (root / "預覽圖片.svg").write_text(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#236b60"/><text x="80" y="100" fill="white" font-size="28">Files preview</text></svg>',
+            '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#236b60"/><text x="80" y="100" fill="white" font-size="28">FileHub preview</text></svg>',
             encoding="utf-8",
         )
         (root / "unsupported.zip").write_bytes(b"unsupported")
@@ -43,11 +43,12 @@ def main():
             encoding="utf-8",
         )
         config = Settings(
-            root, work / "db/users.db", "e2e-only-isolated-random-secret-" * 3, PROJECT_ROOT / "frontend/dist"
+            root, work / "db/users.db", "e2e-only-isolated-random-secret-" * 3, PROJECT_ROOT / "frontend/dist",
+            directories_json='[{"id":"projects","name":"專案文件","path":"專案文件"},{"id":"workspace","name":"工作目錄","path":"空資料夾"},{"id":"offline","name":"離線資料","path":"未掛載"}]',
         )
         engine, factory = open_database(config.database_path)
         with factory() as db:
-            for username in ("admin", "password-test", "settings-reader"):
+            for username in ("admin", "password-test", "settings-reader", "multi-reader"):
                 db.add(
                     User(
                         username=username,
@@ -60,7 +61,9 @@ def main():
                 db.add(
                     AccountAccess(
                         user_id=user.id,
-                        role="user" if user.username == "settings-reader" else "admin",
+                        role="user" if user.username in {"settings-reader", "multi-reader"} else "admin",
+                        scope_mode="multiple" if user.username == "multi-reader" else "single",
+                        directory_grants=[DirectoryGrant(directory_id="projects", directory_path="專案文件", permissions=["browse", "read"]), DirectoryGrant(directory_id="workspace", directory_path="空資料夾", permissions=["browse", "read", "upload", "modify", "delete"])] if user.username == "multi-reader" else [],
                         enabled=True,
                         root="",
                         permissions=PERMISSIONS,

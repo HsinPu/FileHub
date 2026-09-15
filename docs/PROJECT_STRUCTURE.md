@@ -1,7 +1,7 @@
 # 專案架構
 
 ```text
-Files-App/
+filehub/
 ├─ frontend/
 │  ├─ src/app/                   # 路由、登入狀態入口
 │  ├─ src/features/auth/         # 登入、密碼設定、AuthProvider
@@ -32,7 +32,7 @@ Files-App/
 ├─ srv/                          # 預設管理檔案目錄，不納入 Git
 ├─ main.py                       # 舊啟動指令相容入口
 ├─ setup.bat                     # 安裝、建置、初始帳號設定
-└─ start_files_app.bat            # 本機啟動
+└─ start_filehub.bat            # 本機啟動
 ```
 
 ## 資料流

@@ -1,8 +1,8 @@
 services:
-  files-app:
+  filehub:
     build:
       context: .
-    image: files-app:local
+    image: filehub:local
     init: true
     restart: unless-stopped
     ports:
@@ -11,6 +11,7 @@ services:
       FILES_ROOT: /files
       DATABASE_PATH: /app/database/users.db
       COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+      FILES_DIRECTORIES: "${FILES_DIRECTORIES:-[]}"
     volumes:
       - database:/app/database
       - config:/app/config

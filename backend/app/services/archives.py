@@ -119,6 +119,7 @@ class ArchiveService:
                     )
             operations.check_cancel(job.id)
             with MUTATION_LOCK:
+                operations.check_cancel(job.id)
                 for source, before in snapshots:
                     if operations.snapshot(source, job.id) != before:
                         raise AppError(409, "SOURCE_CHANGED", "來源在打包期間變更，請重試。")

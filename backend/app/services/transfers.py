@@ -71,20 +71,22 @@ def _rename_no_replace(source: Path, target: Path):
 
 
 def rename_entry(service, path: str, name: str):
-    validate_name(name)
-    source = service.resolve(path)
-    if source == service.root:
-        raise AppError(400, "ROOT_RENAME", "不能重新命名根目錄。")
-    if not source.exists():
-        raise AppError(404, "NOT_FOUND", "檔案或資料夾不存在。")
-    target = service.resolve((source.parent.relative_to(service.root) / name).as_posix())
-    if source.name == name:
-        return service.entry(source)
-    try:
-        rename_no_replace(source, target)
-    except FileExistsError:
-        raise AppError(409, "ALREADY_EXISTS", "同名項目已存在，請使用其他名稱。") from None
-    return service.entry(target)
+    with MUTATION_LOCK:
+        validate_name(name)
+        source = service.resolve(path)
+        if source == service.root:
+            raise AppError(400, "ROOT_RENAME", "不能重新命名根目錄。")
+        service.assert_movable(source)
+        if not source.exists():
+            raise AppError(404, "NOT_FOUND", "檔案或資料夾不存在。")
+        target = service.resolve((source.parent.relative_to(service.root) / name).as_posix())
+        if source.name == name:
+            return service.entry(source)
+        try:
+            rename_no_replace(source, target)
+        except FileExistsError:
+            raise AppError(409, "ALREADY_EXISTS", "同名項目已存在，請使用其他名稱。") from None
+        return service.entry(target)
 
 
 async def upload_stream(service, path: str, name: str, chunks, expected_size: int | None):
@@ -111,14 +113,19 @@ async def upload_stream(service, path: str, name: str, chunks, expected_size: in
                 raise AppError(400, "INCOMPLETE_UPLOAD", "上傳未完成，請重試。")
             await run_in_threadpool(stream.flush)
             await run_in_threadpool(os.fsync, stream.fileno())
-        # Recheck the destination boundary after a potentially long transfer.
-        service.resolve(path)
-        target = service.resolve(f"{path}/{name}" if path else name)
+        # Permission updates and publication use the same lock. Revalidate inside it.
+        def publish():
+            with MUTATION_LOCK:
+                service.resolve(path)
+                destination = service.resolve(f"{path}/{name}" if path else name)
+                rename_no_replace(temporary, destination)
+                return service.entry(destination)
+
         try:
-            await run_in_threadpool(rename_no_replace, temporary, target)
+            result = await run_in_threadpool(publish)
         except FileExistsError:
             raise AppError(409, "ALREADY_EXISTS", "上傳期間出現同名項目，原檔案未被覆寫。") from None
-        return service.entry(target)
+        return result
     except OSError as exc:
         if exc.errno == errno.ENOSPC:
             raise AppError(507, "DISK_FULL", "磁碟空間不足，請清出空間後重試。") from None

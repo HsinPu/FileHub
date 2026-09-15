@@ -30,7 +30,7 @@ export function LoginPage() {
           <span className="brand-icon">
             <FolderOpenOutlined />
           </span>
-          <strong>Files</strong>
+          <strong>FileHub</strong>
           <span className="brand-caption">你的檔案工作空間</span>
         </div>
         <div className="login-intro">

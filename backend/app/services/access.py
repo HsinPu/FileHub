@@ -6,6 +6,61 @@ from backend.app.schemas.auth import UserInfo
 from backend.app.services.files import FileService
 
 
+def is_multiple(access):
+    return access.role != "admin" and access.scope_mode == "multiple"
+
+
+def account_permissions(access):
+    if access.role == "admin":
+        return PERMISSIONS
+    if is_multiple(access):
+        return sorted({permission for grant in access.directory_grants for permission in grant.permissions})
+    return access.permissions
+
+
+def path_permissions(files, access, target):
+    if not is_multiple(access):
+        root = scope_root(files, access)
+        return account_permissions(access) if target.is_relative_to(root) else []
+    for grant in access.directory_grants:
+        if getattr(files, "directory_catalog", {}).get(grant.directory_id) != grant.directory_path:
+            continue
+        try:
+            root = files.resolve(grant.directory_path)
+        except AppError:
+            continue
+        if target.is_relative_to(root):
+            return grant.permissions
+    return []
+
+
+def authorize_path(files, access, target, permission="browse", virtual=False):
+    require(access, permission)
+    if is_multiple(access) and target == files.root and virtual and permission == "browse":
+        return
+    if permission not in path_permissions(files, access, target):
+        raise AppError(403, "DIRECTORY_FORBIDDEN", "沒有此目錄的操作權限。")
+
+
+def access_context(files, access):
+    context = [access.version, str(scope_root(files, access))]
+    if is_multiple(access):
+        import hashlib
+        import json
+
+        grants = sorted(
+            (g.directory_id, g.directory_path, sorted(g.permissions), getattr(files, "directory_catalog", {}).get(g.directory_id))
+            for g in access.directory_grants
+        )
+        context.append(hashlib.sha256(json.dumps(grants, ensure_ascii=False).encode()).hexdigest())
+    return context
+
+
+def granted_roots(files, access):
+    return [g.directory_path for g in access.directory_grants
+            if getattr(files, "directory_catalog", {}).get(g.directory_id) == g.directory_path and "browse" in g.permissions]
+
+
 def policy(db, user_id):
     access = db.get(AccountAccess, user_id)
     if not access or not access.enabled:
@@ -18,20 +73,21 @@ def user_info(user, access):
         username=user.username,
         full_name=user.full_name,
         role=access.role,
-        permissions=PERMISSIONS if access.role == "admin" else access.permissions,
+        permissions=account_permissions(access),
         must_change_password=access.must_change_password,
+        scope_mode="multiple" if is_multiple(access) else "single",
     )
 
 
 def require(access, permission):
     if access.must_change_password:
         raise AppError(403, "PASSWORD_CHANGE_REQUIRED", "請先修改初始密碼。")
-    if access.role != "admin" and (access.root is None or permission not in access.permissions):
+    if access.role != "admin" and ((not is_multiple(access) and access.root is None) or permission not in account_permissions(access)):
         raise AppError(403, "FORBIDDEN", "沒有執行此操作的權限。")
 
 
 def scope_root(files, access):
-    if access.role == "admin":
+    if access.role == "admin" or is_multiple(access):
         return files.root
     if access.root is None:
         raise AppError(403, "MISSING_SCOPE", "尚未指定存取目錄。")
@@ -45,6 +101,8 @@ def global_path(files, access, local):
     virtual.root = root
     target = virtual.resolve(local)
     files.resolve(target.relative_to(files.root).as_posix())
+    if is_multiple(access):
+        authorize_path(files, access, target)
     return target.relative_to(files.root).as_posix() if target != files.root else ""
 
 
@@ -53,6 +111,8 @@ def local_path(files, access, path):
     root = scope_root(files, access)
     if not target.is_relative_to(root):
         raise AppError(404, "NOT_FOUND", "找不到此項目。")
+    if is_multiple(access):
+        authorize_path(files, access, target, virtual=True)
     return target.relative_to(root).as_posix() if target != root else ""
 
 
@@ -64,6 +124,7 @@ class ScopedFiles(FileService):
             require(access, permission)
             self.version = access.version
             self.root = scope_root(files, access)
+            self.context = access_context(files, access)
         if not self.root.is_dir():
             raise AppError(404, "ROOT_MISSING", "指定目錄已不存在，請聯絡管理員。")
 
@@ -71,11 +132,29 @@ class ScopedFiles(FileService):
         with self.factory() as db:
             access = policy(db, self.user_id)
             require(access, self.permission)
-            if access.version != self.version or scope_root(self.base, access) != self.root:
+            if access_context(self.base, access) != self.context:
                 raise AppError(403, "ACCESS_CHANGED", "權限已變更，請重新登入。")
         target = super().resolve(path)
         self.base.resolve(target.relative_to(self.base.root).as_posix())
+        authorize_path(self.base, access, target, self.permission, virtual=True)
         return target
+
+    def list_directory(self, path="", directories_only=False):
+        result = super().list_directory(path, directories_only)
+        result.permissions = self.capabilities(path)
+        return result
+
+    def capabilities(self, path):
+        target = self.resolve(path)
+        if not target.is_dir():
+            raise AppError(404, "NOT_FOUND", "目的資料夾不存在或目前無法使用。")
+        with self.factory() as db:
+            access = policy(db, self.user_id)
+            if access.version != self.version:
+                raise AppError(403, "ACCESS_CHANGED", "權限已變更，請重新登入。")
+            if is_multiple(access) and target == self.base.root:
+                return ["browse"]
+            return path_permissions(self.base, access, target)
 
 
 def scoped(request, permission):
@@ -86,9 +165,8 @@ def scoped(request, permission):
 
 def authorize_job(files, db, job, execution=True):
     access = policy(db, job.user_id)
-    root = scope_root(files, access)
     context = job.items[0].get("access_context") if job.items else None
-    current = [access.version, str(root)]
+    current = access_context(files, access)
     if context != current and (context is not None or access.role != "admin"):
         raise AppError(403, "ACCESS_CHANGED", "此任務建立後權限已變更，請重新選取項目。")
     if execution:
@@ -111,8 +189,19 @@ def authorize_job(files, db, job, execution=True):
             if access.role != "admin" and record.deleted_by != user.username:
                 raise AppError(404, "NOT_FOUND", "找不到垃圾桶項目。")
             local_path(files, access, record.original_path)
+            if execution and is_multiple(access):
+                destination = files.resolve(job.destination) if job.destination is not None else files.resolve(record.original_path).parent
+                authorize_path(files, access, destination, "upload")
         else:
             local_path(files, access, item["source"])
+            if is_multiple(access) and (execution or job.kind == "archive"):
+                permission = {"copy": "read", "move": "modify", "trash": "delete", "archive": "read"}[job.kind]
+                authorize_path(files, access, files.resolve(item["source"]), permission)
+    if execution and is_multiple(access) and job.kind in {"copy", "move"}:
+        destination = files.resolve(job.destination or "")
+        authorize_path(files, access, destination, "upload")
+        if job.kind == "move":
+            authorize_path(files, access, destination, "modify")
     return access
 
 

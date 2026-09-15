@@ -17,7 +17,7 @@ from backend.app.core.security import password_hash, verify_password
 from backend.app.models.access import AuditEvent
 from backend.app.models.share import FileShare
 from backend.app.models.user import User
-from backend.app.services.access import global_path, local_path, policy, require
+from backend.app.services.access import authorize_path, global_path, local_path, policy, require
 from backend.app.services.operations import identity
 
 router = APIRouter(tags=["shares"])
@@ -45,6 +45,8 @@ def valid_share(request, db, share):
             raise ValueError()
         local_path(request.app.state.files, access, share.path)
         target = request.app.state.files.resolve(share.path)
+        authorize_path(request.app.state.files, access, target, "read")
+        authorize_path(request.app.state.files, access, target, "share")
         if not target.is_file() or identity(target) != share.identity:
             raise ValueError()
     except (AppError, OSError, ValueError):
@@ -73,6 +75,8 @@ def create(
     require(access, "read")
     path = global_path(request.app.state.files, access, data.path)
     target = request.app.state.files.resolve(path)
+    authorize_path(request.app.state.files, access, target, "read")
+    authorize_path(request.app.state.files, access, target, "share")
     if not target.is_file():
         raise AppError(400, "FILE_REQUIRED", "第一版分享僅支援單一檔案。")
     token = secrets.token_urlsafe(32)
