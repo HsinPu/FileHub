@@ -6,32 +6,13 @@
 
 ## 部署設定
 
-現有 `compose.yaml` 保留 `/files`，Windows 保留原本 `FILES_ROOT` 行為。新 Linux 多目錄範例使用獨立的 `compose.linux.yaml`，容器根目錄為 `/srv`。
+預設 `compose.yaml` 使用 Docker `files` 資料卷，容器根目錄為 `/files`。不掛入外部資料夾，不需要建立 `srv/`；多目錄 Linux 範例已移除。
 
-先建立根目錄 `./srv`，確認 server 上各來源目錄存在，並依原本擁有者、群組或 ACL 給容器 UID/GID 1000 必要權限，不要遞迴改動既有資料擁有者。
+基本部署請見 [Docker 說明](DOCKER.md)。預設未宣告多目錄清單，管理頁只顯示總根目錄，一般帳號可使用單一根目錄模式。
 
-在 `.env` 設定實際位置：
+多目錄授權功能仍保留。進階使用時，可自行在 Compose environment 加入 `FILES_DIRECTORIES` JSON 清單，並先在資料卷建立對應第一層目錄。僅在 `.env` 填寫不會生效，因為基本 Compose 未轉送此設定。
 
-```dotenv
-DOCKER_FILES_DIR=./srv
-SHARED_DIR=/data/shared
-REPORTS_DIR=/mnt/reports
-DOCUMENTS_DIR=/srv/documents
-```
-
-```bash
-docker compose -f compose.linux.yaml config
-docker compose -f compose.linux.yaml up -d --build --wait
-docker compose -f compose.linux.yaml exec filehub python -m backend.app.cli bootstrap
-```
-
-此檔為獨立範例，後續管理均使用 `-f compose.linux.yaml`，不要和預設 Compose 疊加。新來源缺少時不會自動建立空目錄。連線仍限制本機 9005，網路部署仍需 HTTPS 反向代理。
-
-部署清單 `FILES_DIRECTORIES` 為 JSON 陣列，每筆包含固定 `id`、`name` 與第一層相對 `path`；最多 100 筆。`root` 是保留識別碼。清單不會執行掛載、不改變檔案頁顯示名稱，也不授予帳號權限。
-
-變更 Linux 範例的掛載時，同步更新其中的 `FILES_DIRECTORIES`。一般 `compose.yaml` 可由 `.env` 傳入清單；未設定時只顯示總根目錄。不要將主機敏感路徑、資料庫或金鑰掛入檔案根目錄。
-
-既有部署切換範例前，先備份並確認專案名稱、volumes 和相對目錄保持對應；範例不會自動搬移資料、分享或垃圾桶。
+每筆宣告包含固定 `id`、`name` 與第一層相對 `path`，最多 100 筆；`root` 是保留識別碼。宣告不會建立目錄或授予帳號權限。Windows 本機啟動仍使用 `FILES_ROOT` 設定。
 
 ## 管理畫面
 

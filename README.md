@@ -5,30 +5,18 @@ React + TypeScript + Ant Design 的檔案工作空間，搭配 FastAPI 與 SQLit
 
 ## 使用 Docker
 
-啟動 Docker Desktop（Linux containers），在本專案根目錄執行：
+使用 Docker Engine 與 Compose，或啟動 Docker Desktop（Linux containers），在本專案根目錄執行：
 
 ```powershell
 docker compose up -d --build --wait
 docker compose exec filehub python -m backend.app.cli bootstrap
 ```
 
-設定初始帳號後，開啟 [http://127.0.0.1:9005](http://127.0.0.1:9005)。主機 `srv/` 是管理的檔案目錄，帳號與金鑰保存於 Docker volumes。
-設定掛載路徑、備份與既有帳號搬移請見 [Docker 說明](docs/DOCKER.md)。
-Linux 多目錄掛載、管理員目錄狀態、帳號多目錄授權與操作權限請見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
+設定初始帳號後，開啟 [http://127.0.0.1:9005](http://127.0.0.1:9005)。檔案、帳號與金鑰分別保存於 Docker 資料卷，不需要建立或掛入主機資料夾；登入後即可上傳檔案。
+部署設定、備份與既有帳號搬移請見 [Docker 說明](docs/DOCKER.md)。
+進階目錄設定、管理員目錄狀態、帳號多目錄授權與操作權限請見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
 
-## Windows 快速開始
-
-需要 Python 3.11+（含 `py` launcher）、Node.js 22.13+（建議 24）與 npm。
-
-1. 在本專案執行 `setup.bat`，安裝專案專用 `.venv` 與前端依賴、建置前端。
-2. 若沒有帳號，依提示建立第一個帳號；密碼需 8–128 字元，不會顯示或寫入日誌。
-3. 雙擊 `start_filehub.bat`。預設啟動 `http://127.0.0.1:8000`，服務就緒後開啟瀏覽器。
-4. 將要管理的檔案放入 `srv/`，或在 `.env` 設定 `FILES_ROOT`。
-5. 在啟動視窗按 Ctrl+C 停止。若連接埠已被占用，設定另一個 `FILEHUB_PORT`；不會停止其他程式。
-
-後續修改前端後，重新執行 `setup.bat` 更新建置。既有帳號會保留。
-
-## 手動安裝／開發
+## 本機開發（選用）
 
 以下 PowerShell 指令均從儲存庫根目錄執行：
 
@@ -60,6 +48,8 @@ Linux/macOS 使用 `python3 -m venv .venv` 與 `.venv/bin/python`，其餘 npm �
 
 ## 設定
 
+Docker 部署可在 `.env` 設定 `DOCKER_PORT`（預設 9005）與 `COOKIE_SECURE`。以下路徑設定適用於本機開發；Docker 使用 Compose 指定的容器路徑。
+
 複製 `.env.example` 為 `.env`，只有需要變更時才設定。環境變數優先於 `.env`。
 
 | 設定 | 預設／用途 |
@@ -68,8 +58,6 @@ Linux/macOS 使用 `python3 -m venv .venv` 與 `.venv/bin/python`，其餘 npm �
 | `DATABASE_PATH` | 專案 `database/users.db`，沿用舊版帳號 |
 | `SECRET_KEY` | 未提供時產生隨機金鑰，保存在 `config/session.key` |
 | `COOKIE_SECURE` | 本機 HTTP 為 `false`；HTTPS 部署設為 `true` |
-| `FILEHUB_PORT` | 本機啟動器使用 `8000` |
-| `FILEHUB_OPEN_BROWSER` | `true`；設為 `false` 不自動開啟瀏覽器 |
 
 相對檔案系統路徑固定以儲存庫根目錄解析，不受啟動位置影響。
 請保存 `config/session.key`；替換它會讓所有登入失效。Windows 下金鑰與資料庫依賴帳號目錄的 NTFS 權限保護。
@@ -77,12 +65,12 @@ Linux/macOS 使用 `python3 -m venv .venv` 與 `.venv/bin/python`，其餘 npm �
 
 ## 登入與部署
 
-- 公開註冊關閉。第一個帳號由本機 CLI 建立；後續由管理員在「帳號管理」設定角色、狀態、根目錄與操作權限。
+- 公開註冊關閉。第一個帳號由 `docker compose exec filehub python -m backend.app.cli bootstrap` 建立；後續由管理員在「帳號管理」設定角色、狀態、根目錄與操作權限。
 - 新密碼使用 Argon2，保留驗證舊 bcrypt 密碼的能力。
 - JWT 儲存在 HttpOnly、SameSite=Strict Cookie；不使用 localStorage 保存權杖。
 - Session 存在資料庫中；登出撤銷目前連線，修改密碼驗證舊密碼並撤銷所有連線。
 - 寫入 API 要求 `X-Requested-With: Files-App`；有 Origin 時驗證同源，不開 CORS。
-- 本機啟動器只監聽 loopback。若要網路部署，使用 HTTPS 反向代理並保留正確的 Host／scheme；只信任指定代理。
+- Docker Compose 預設只將連接埠發布到主機 loopback。若要網路部署，使用 HTTPS 反向代理並保留正確的 Host／scheme；只信任指定代理。
 - 登入節流目前為單一程序、每來源 IP 五分鐘 10 次；本版以單一 worker 執行為基準。
 
 ## 功能範圍與限制
@@ -107,7 +95,7 @@ Linux/macOS 使用 `python3 -m venv .venv` 與 `.venv/bin/python`，其餘 npm �
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m ruff check backend main.py
+.\.venv\Scripts\python.exe -m ruff check backend
 cd frontend
 npm run build
 npx playwright install chromium
@@ -119,7 +107,7 @@ npm run test:e2e
 
 ## 升級與回復
 
-原始檢查點為 Git `6b2dcdf`。新版移除 `app/` 舊模板、JS 及 Controller，根目錄 `main.py` 保留 `uvicorn main:app` 相容入口。
+原始檢查點為 Git `6b2dcdf`。新版移除 `app/` 舊模板、JS 及 Controller，舊的根目錄 `main.py` 相容入口已移除；使用 Docker Compose 啟動，開發時使用 `backend.app.main:app`。
 升級前停止舊服務並備份 `database/`、`.env`、`config/session.key` 與原本的檔案根目錄。
 新版不搬移或清空檔案，也不重建 `users` 表；新增登入連線、任務、垃圾桶與上傳批次表。舊版權杖需重新登入。
 若需回復，使用獨立舊版 checkout 搭配升級前的資料庫備份；新版 Argon2 密碼不能交給舊版 passlib 設定驗證。
@@ -128,8 +116,7 @@ npm run test:e2e
 
 ## FileHub 更名相容性
 
-產品名稱已由 Files-App 改為 FileHub。新入口為 `start_filehub.bat`，舊的 `start_files_app.bat` 仍可使用。
-新的 `FILEHUB_PORT`、`FILEHUB_OPEN_BROWSER` 優先於舊的 `FILES_APP_PORT`、`FILES_APP_OPEN_BROWSER`；未設定新名稱時沿用舊值。
+產品名稱已由 Files-App 改為 FileHub。部署統一使用 Docker Compose，Windows BAT 安裝與啟動入口已移除。
 登入 Cookie、JWT issuer、寫入要求識別、回收桶與上傳暫存格式保留原名稱，以維持既有資料相容性。
 Docker 服務改名為 `filehub`、映像改為 `filehub:local`；已有部署請先閱讀 [更名升級說明](docs/DOCKER.md#filehub-更名升級)。
-本機目錄與 GitHub 儲存庫尚未更名。
+GitHub 儲存庫已更名為 `HsinPu/FileHub`。

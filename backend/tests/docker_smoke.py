@@ -32,7 +32,6 @@ def main():
         env = {
             **os.environ,
             "DOCKER_PORT": str(port),
-            "DOCKER_FILES_DIR": root.as_posix(),
             "COOKIE_SECURE": "false",
         }
         command = ["docker", "compose", "-p", project]
@@ -53,6 +52,7 @@ def main():
         try:
             compose("up", "-d", "--no-build", "--wait")
             assert compose("exec", "-T", "filehub", "id", "-u").stdout.strip() == "1000"
+            compose("cp", str(root) + "/.", "filehub:/files/")
             password = secrets.token_urlsafe(20)
             # The account exists only in this test's isolated Compose volume.
             seed = f"""
@@ -115,7 +115,7 @@ engine.dispose()
                     == "Docker preview verified."
                 )
                 assert client.post("/api/v1/files/directory", json={"name": "容器建立"}).status_code == 201
-                assert (root / "容器建立").is_dir()
+                assert compose("exec", "-T", "filehub", "python", "-c", "from pathlib import Path; assert Path('/files/容器建立').is_dir()").returncode == 0
                 params = {"path": "容器建立", "name": "上傳.txt"}
                 uploaded = client.post("/api/v1/files/upload", params=params, content=b"docker upload")
                 assert uploaded.status_code == 201, uploaded.text
@@ -136,9 +136,9 @@ engine.dispose()
                 copied = operation("copy", ["容器建立"], conflict="keep_both")
                 assert copied["items"][0]["target"] == "容器建立 (1)"
                 operation("move", ["容器建立 (1)/改名.txt"])
-                assert (root / "改名.txt").read_bytes() == b"docker upload"
+                assert compose("exec", "-T", "filehub", "python", "-c", "from pathlib import Path; assert Path('/files/改名.txt').read_bytes() == b'docker upload'").returncode == 0
                 trashed = operation("trash", ["改名.txt"])
-                assert not (root / "改名.txt").exists()
+                assert compose("exec", "-T", "filehub", "python", "-c", "from pathlib import Path; assert not Path('/files/改名.txt').exists()").returncode == 0
                 trash_id = client.get("/api/v1/trash").json()[0]["id"]
                 batch = {
                     "request_id": str(uuid4()),
@@ -199,7 +199,7 @@ engine.dispose()
                 wait_task(
                     client.post("/api/v1/trash/restore", json={"request_id": str(uuid4()), "ids": [trash_id]})
                 )
-                assert (root / "改名.txt").read_bytes() == b"docker upload"
+                assert compose("exec", "-T", "filehub", "python", "-c", "from pathlib import Path; assert Path('/files/改名.txt').read_bytes() == b'docker upload'").returncode == 0
                 assert client.get("/api/v1/trash").json() == []
                 assert client.post("/api/v1/files/directory", json={"name": "目的資料夾"}).status_code == 201
                 assert (

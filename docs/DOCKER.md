@@ -11,10 +11,9 @@ docker compose exec filehub python -m backend.app.cli bootstrap
 ```
 
 第二個指令會互動要求帳號與密碼。既有帳號不會被覆寫，密碼不會輸出到日誌。
-開啟 [http://127.0.0.1:9005](http://127.0.0.1:9005)。將檔案放進主機的 `srv/` 即可瀏覽。
+開啟 [http://127.0.0.1:9005](http://127.0.0.1:9005)。登入後可直接上傳檔案。
 
-若使用 Linux，先以自己的帳號建立 `srv/`，並確保容器 UID/GID 1000 有讀取與建立子目錄的權限。
-容器以非 root 使用者執行，不會替你遞迴更改既有檔案的擁有者。
+Linux 不需要建立 `srv/` 或設定主機目錄權限。Docker 會建立檔案資料卷，容器以 UID/GID 1000 執行。
 
 ## 持久化與設定
 
@@ -22,21 +21,20 @@ docker compose exec filehub python -m backend.app.cli bootstrap
 | --- | --- |
 | 帳號、登入連線 | Compose `database` volume，容器 `/app/database` |
 | 隨機登入金鑰 | Compose `config` volume，容器 `/app/config/session.key` |
-| 管理的檔案 | 主機 `./srv` bind mount，容器 `/files` |
+| 管理的檔案 | Compose `files` volume，容器 `/files` |
 
 本機 Python 啟動的 `database/users.db` 與 Docker 的 database volume 是不同資料庫；不會自動搬移或覆寫本機帳號。
-`docker compose down` 保留資料；不要加 `-v`，除非你確定要刪除帳號與金鑰 volumes。
+`docker compose down` 保留資料；不要加 `-v`，除非你確定要刪除檔案、帳號與金鑰 volumes。
 
 可在根目錄 `.env` 設定（Compose 只傳入列出的設定，不會把整份 `.env` 打包進映像）：
 
 ```dotenv
 DOCKER_PORT=9005
-DOCKER_FILES_DIR=C:/Users/win10/Documents/MyFiles
 COOKIE_SECURE=false
 ```
 
-`DOCKER_FILES_DIR` 指主機路徑，`FILES_ROOT` 則是容器內的 `/files`，不要混用。
-修改掛載或連接埠後執行 `docker compose up -d --wait` 套用。
+預設沒有主機資料夾掛載，也不讀取 `DOCKER_FILES_DIR`。
+修改連接埠後執行 `docker compose up -d --wait` 套用。
 
 ## 更新、檢查與停止
 
@@ -58,13 +56,14 @@ docker compose start
 
 ```powershell
 docker compose stop
-New-Item -ItemType Directory -Force backups/database, backups/config
+New-Item -ItemType Directory -Force backups/database, backups/config, backups/files
 docker compose cp filehub:/app/database/. ./backups/database/
 docker compose cp filehub:/app/config/. ./backups/config/
+docker compose cp filehub:/files/. ./backups/files/
 docker compose start
 ```
 
-另外備份主機 `DOCKER_FILES_DIR` 指定的檔案。備份含帳號資料與金鑰，不要加入 Git。
+上述步驟包含檔案資料卷。Linux 請將 `New-Item` 改為 `mkdir -p backups/database backups/config backups/files`。備份含帳號資料與金鑰，不要加入 Git。
 第二階段需一起備份檔案根目錄內的 `.files-app-trash` 保留目錄與 SQLite；只備份其中之一無法完整還原垃圾桶。維持單一 worker／容器寫入同一目錄。
 第三階段於 database volume 新增 `archives/` ZIP 暫存與資料庫版本 4 上傳批次表；整個 `/app/database` 備份會包含它們。ZIP 到期可重新打包，不影響原始檔案。
 第四階段新增版本 5 帳號權限與管理紀錄、版本 6 分享表。既有帳號首次遷移為管理員，往後不重設角色。原帳號密碼與金鑰保留；分享驗證也使用原持久化金鑰。
@@ -90,7 +89,7 @@ Compose 預設只發布 loopback 9005。對外提供服務需另行設定 HTTPS 
 
 參考：[Docker multi-stage build](https://docs.docker.com/build/building/multi-stage/)、[Compose volumes](https://docs.docker.com/reference/compose-file/volumes/)。
 
-## 已驗證（2026-09-09）
+## 舊版主機掛載驗證紀錄（2026-09-09）
 
 Docker Desktop Linux/amd64 實際建置成功。隔離 Compose 測試確認 UID 1000、健康檢查、React HTML、登入、文字預覽、主機掛載寫入與登出。
 強制重建容器後，原登入 Cookie 與建立的資料夾仍可使用，確認資料庫及隨機金鑰持久化。
@@ -109,6 +108,12 @@ docker compose build
 
 服務名稱由 `files-app` 改為 `filehub`，映像由 `files-app:local` 改為 `filehub:local`。現有部署須先用舊版 Compose 停止舊服務，再使用新版啟動，避免兩個服務同時寫入同一份資料；切勿使用 `down -v`。
 
-沿用原 Compose 專案名稱、`database` 與 `config` 資料卷，以及原主機掛載路徑。若日後搬動或重新命名專案目錄，請使用 `-p <原專案名稱>` 或設定 `COMPOSE_PROJECT_NAME`，並核對現有資料卷；不要讓目錄改名建立另一組空白資料卷。
+沿用原 Compose 專案名稱、`database` 與 `config` 資料卷，以及既有檔案來源（更名與儲存方式切換需分開處理）。若日後搬動或重新命名專案目錄，請使用 `-p <原專案名稱>` 或設定 `COMPOSE_PROJECT_NAME`，並核對現有資料卷；不要讓目錄改名建立另一組空白資料卷。
 
 本次更名不搬移 SQLite、金鑰或回收桶，也不修改登入與上傳的內部格式。歷史紀錄中的舊映像標籤保持原樣。上方歷史 Docker 驗證不代表 FileHub 更名版本已完成 Docker 實測。
+
+## 從舊版主機掛載切換
+
+新版改用 `files` 資料卷，已移除 `compose.linux.yaml`。舊 `.env` 的 `DOCKER_FILES_DIR`、`SHARED_DIR`、`REPORTS_DIR`、`DOCUMENTS_DIR` 不再生效。舊主機檔案不會刪除，也不會自動搬移；直接切換會顯示空白檔案目錄。
+
+已有資料的環境請先保留原 Compose 與完整備份，再規劃檔案、回收桶及資料庫的一致性搬移。本次設定以全新測試部署為主，尚未完成 Docker 實機驗證。

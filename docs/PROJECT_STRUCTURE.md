@@ -25,14 +25,12 @@ filehub/
 │  ├─ app/models/                # 相容舊 users 表及新增 sessions 表
 │  ├─ app/db/                    # SQLAlchemy engine 與 session factory
 │  ├─ app/cli.py                 # 本機首次帳號設定
-│  ├─ app/launcher.py            # loopback 啟動與瀏覽器就緒檢查
 │  └─ tests/                     # API／資料相容／檔案邊界測試
 ├─ database/                     # 既有帳號資料，不納入 Git
 ├─ config/                       # 本機隨機金鑰，不納入 Git
 ├─ srv/                          # 預設管理檔案目錄，不納入 Git
-├─ main.py                       # 舊啟動指令相容入口
-├─ setup.bat                     # 安裝、建置、初始帳號設定
-└─ start_filehub.bat            # 本機啟動
+├─ Dockerfile                    # 建置前端與後端映像
+└─ compose.yaml                  # Docker 部署及持久化資料卷
 ```
 
 ## 資料流
