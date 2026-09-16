@@ -385,6 +385,9 @@ class OperationService:
             with MUTATION_LOCK:
                 self.check_cancel(job.id)
                 self.files.resolve(item["source"])
+                # Registration shares this lock; protect entries added while the job ran.
+                if job.kind == "move":
+                    self.files.assert_movable(source)
                 self.files.resolve(job.destination or "")
                 if identity(parent)[:2] != parent_identity or self.snapshot(source, job.id) != before:
                     raise AppError(409, "SOURCE_CHANGED", "來源或目的資料夾已變更，請重試。")

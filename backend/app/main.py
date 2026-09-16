@@ -9,12 +9,12 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 
-from backend.app.api.routes import accounts, auth, files, operations, shares, trash
+from backend.app.api.routes import accounts, auth, directories, files, operations, shares, trash
 from backend.app.core.config import PROJECT_ROOT, Settings
 from backend.app.core.errors import AppError
 from backend.app.core.security import LoginLimiter
 from backend.app.db.session import open_database
-from backend.app.services.directories import definitions
+from backend.app.services.directories import DirectoryRegistryService
 from backend.app.services.files import FileService
 from backend.app.services.operations import OperationService
 
@@ -47,13 +47,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         ) + (config.database_path, config.database_path.parent / "archives")
         app.state.files = FileService(config.files_root, protected)
-        app.state.directories = definitions(app.state.files, config.directories_json)
-        app.state.files.deployment_roots = tuple(
-            app.state.files.resolve(entry.path) for entry in app.state.directories
-        )
-        app.state.files.directory_catalog = {entry.id: entry.path for entry in app.state.directories}
         app.state.settings = config
         app.state.engine, app.state.session_factory = open_database(config.database_path)
+        app.state.directory_registry = DirectoryRegistryService(app.state.files, app.state.session_factory)
+        try:
+            app.state.directory_registry.initialize(config.directories_json)
+        except Exception:
+            app.state.engine.dispose()
+            raise
+        app.state.files.registry = app.state.directory_registry
         app.state.login_limiter = LoginLimiter()
         app.state.share_limiter = LoginLimiter()
         app.state.operations = OperationService(
@@ -121,6 +123,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(accounts.router, prefix="/api/v1")
+    app.include_router(directories.router, prefix="/api/v1")
+    app.include_router(directories.user_router, prefix="/api/v1")
     app.include_router(shares.router, prefix="/api/v1")
     app.include_router(files.router, prefix="/api/v1")
     app.include_router(operations.router, prefix="/api/v1")

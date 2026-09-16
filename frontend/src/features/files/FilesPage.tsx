@@ -1,3 +1,4 @@
+import { navigationSchema, type DirectoryNavigation } from "../../lib/api";
 import { ResizableDrawer } from "../../app/ResizableDrawer";
 import AccountsPage from "../auth/AccountsPage";
 import DirectoriesPage from "../auth/DirectoriesPage";
@@ -117,6 +118,9 @@ export function FilesPage() {
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [directoryPermissions, setDirectoryPermissions] = useState<string[]>(
     [],
+  );
+  const [navigation, setNavigation] = useState<DirectoryNavigation>(
+    navigationSchema.parse({}),
   );
   const [loadedPath, setLoadedPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -239,9 +243,17 @@ export function FilesPage() {
         setEntries(result.entries);
         setDirectoryPermissions(result.permissions);
         setLoadedPath(result.path);
+        setNavigation(result);
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setError(errorMessage(error));
+        if (!controller.signal.aborted) {
+          setError(errorMessage(error));
+          setEntries([]);
+          setDirectoryPermissions([]);
+          setLoadedPath(null);
+          setNavigation(navigationSchema.parse({}));
+          clipboard.clear();
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -254,6 +266,10 @@ export function FilesPage() {
     setSidebarOpen(false);
   }
   function openEntry(entry: FileEntry) {
+    if (entry.directory_root && entry.status !== "readable") {
+      message.error("此共享目錄目前無法存取，請重新整理或聯絡管理員。");
+      return;
+    }
     if (entry.type === "directory") navigate(entry.path);
     else if (can("read")) setPreview(entry);
   }
@@ -282,7 +298,7 @@ export function FilesPage() {
     )
     .sort((a, b) =>
       sort === "modified"
-        ? b.modified.localeCompare(a.modified)
+        ? (b.modified ?? "").localeCompare(a.modified ?? "")
         : sort === "size"
           ? (b.size ?? -1) - (a.size ?? -1)
           : a.name.localeCompare(b.name, "zh-TW"),
@@ -486,10 +502,15 @@ export function FilesPage() {
             </span>
             <span className="file-name-text" title={entry.name}>
               {entry.name}
+              {entry.directory_root && entry.status !== "readable" && (
+                <small className="mobile-file-meta">目前無法存取</small>
+              )}
               {!screens.md && (
                 <small className="mobile-file-meta">
                   {formatSize(entry.size)} ·{" "}
-                  {dateFormat.format(new Date(entry.modified))}
+                  {entry.modified
+                    ? dateFormat.format(new Date(entry.modified))
+                    : "未提供"}
                 </small>
               )}
             </span>
@@ -516,7 +537,9 @@ export function FilesPage() {
       width: 175,
       responsive: ["lg"],
       render: (value) => (
-        <span className="cell-muted">{dateFormat.format(new Date(value))}</span>
+        <span className="cell-muted">
+          {value ? dateFormat.format(new Date(value)) : "未提供"}
+        </span>
       ),
     },
     {
@@ -580,19 +603,13 @@ export function FilesPage() {
         </button>
       ),
     },
-    ...path
-      .split("/")
-      .filter(Boolean)
-      .map((part, index, parts) => ({
-        title: (
-          <button
-            className="crumb-button"
-            onClick={() => navigate(parts.slice(0, index + 1).join("/"))}
-          >
-            {part}
-          </button>
-        ),
-      })),
+    ...(loadedPath === path ? navigation.breadcrumbs : []).map((crumb) => ({
+      title: (
+        <button className="crumb-button" onClick={() => navigate(crumb.path)}>
+          {crumb.name}
+        </button>
+      ),
+    })),
   ];
   const settingsItems = [
     {
@@ -863,7 +880,7 @@ export function FilesPage() {
           )}
           {location.pathname === "/settings/directories" &&
             (user?.role === "admin" ? (
-              <DirectoriesPage />
+              <DirectoriesPage onFormState={setSettingsForm} />
             ) : (
               <Result
                 status="403"
@@ -920,7 +937,11 @@ export function FilesPage() {
               <Breadcrumb items={crumbs} />
               <div className="page-heading">
                 <Typography.Title level={1}>
-                  {path ? path.split("/").at(-1) : rootLabel}
+                  {path
+                    ? loadedPath === path
+                      ? navigation.breadcrumbs.at(-1)?.name
+                      : "載入中"
+                    : rootLabel}
                 </Typography.Title>
               </div>
               <input
@@ -997,7 +1018,11 @@ export function FilesPage() {
                       size="small"
                       icon={<ArrowUpOutlined />}
                       onClick={() =>
-                        navigate(path.split("/").slice(0, -1).join("/"))
+                        navigate(
+                          loadedPath === path
+                            ? (navigation.parent_path ?? "")
+                            : "",
+                        )
                       }
                     >
                       返回上一層
@@ -1217,7 +1242,12 @@ export function FilesPage() {
                               <span>{entry.name}</span>
                             </button>
                             <div className="thumbnail-footer">
-                              <span>{formatSize(entry.size)}</span>
+                              <span>
+                                {entry.directory_root &&
+                                entry.status !== "readable"
+                                  ? "目前無法存取"
+                                  : formatSize(entry.size)}
+                              </span>
                               <Dropdown
                                 menu={fileMenu(entry)}
                                 trigger={["click"]}
@@ -1387,7 +1417,9 @@ export function FilesPage() {
                 {
                   key: "modified",
                   label: "修改時間",
-                  children: formatDate(details.modified),
+                  children: details.modified
+                    ? formatDate(details.modified)
+                    : "未提供",
                 },
               ]}
             />

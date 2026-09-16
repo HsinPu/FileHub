@@ -12,23 +12,11 @@ from backend.app.core.errors import AppError
 from backend.app.core.security import password_hash
 from backend.app.models.access import AccountAccess, AuditEvent, DirectoryGrant
 from backend.app.models.user import LoginSession, User
-from backend.app.services.directories import inspect_directory, inventory
+from backend.app.services.directories import inspect_directory
 from backend.app.services.transfers import MUTATION_LOCK
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(administrator)])
 ACCOUNT_LOCK = RLock()
-
-
-@router.get("/directories")
-def directories(request: Request):
-    return inventory(request.app.state.files, request.app.state.directories)
-
-
-@router.get("/directory-status")
-def directory_status(request: Request, path: str = Query("", max_length=4096)):
-    # Resolve first so malformed/outside paths keep the established API errors.
-    request.app.state.files.resolve(path)
-    return inspect_directory(request.app.state.files, path)
 
 
 class GrantUpdate(BaseModel):
@@ -91,15 +79,14 @@ def validate_scope(data, request, existing=None):
                 raise AppError(400, "INVALID_DIRECTORY", "目錄不存在，請移除失效的授權。")
             if old is not None and old.directory_path != catalog[grant.directory_id]:
                 raise AppError(400, "DIRECTORY_CHANGED", "目錄位置已變更；請先移除舊授權並儲存，再重新新增授權。")
-            target = request.app.state.files.resolve(catalog[grant.directory_id])
-            if data.enabled and not target.is_dir():
+            if data.enabled and inspect_directory(request.app.state.files, catalog[grant.directory_id])["status"] != "readable":
                 raise AppError(400, "INVALID_DIRECTORY", "授權目錄目前無法使用，請先檢查部署狀態。")
             if "browse" not in grant.permissions or ("share" in grant.permissions and "read" not in grant.permissions):
                 raise AppError(400, "INVALID_PERMISSIONS", "每個目錄需有瀏覽權限；分享還需要讀取內容權限。")
         if data.enabled and not data.directory_grants:
             raise AppError(400, "MISSING_SCOPE", "啟用帳號前請至少授權一個目錄。")
         return
-    if data.role == "user" and data.root is not None:
+    if data.role == "user" and data.enabled and data.root is not None:
         target = request.app.state.files.resolve(data.root)
         if not target.is_dir():
             raise AppError(400, "INVALID_ROOT", "請指定現有的資料夾。")
@@ -158,11 +145,11 @@ def listing(
 def create(
     data: AccountCreate, request: Request, actor: User = Depends(administrator), db: Session = Depends(get_db)
 ):
-    validate_scope(data, request)
     user = User(
         username=data.username, full_name=data.full_name, hashed_password=password_hash.hash(data.password)
     )
     with MUTATION_LOCK, ACCOUNT_LOCK:
+        validate_scope(data, request)
         try:
             db.add(user)
             db.flush()

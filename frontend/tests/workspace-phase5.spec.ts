@@ -245,6 +245,11 @@ test("mobile account actions and root picker stay accessible", async ({
   });
   await page.getByRole("button", { name: "新增帳號", exact: true }).click();
   const drawer = page.getByRole("dialog", { name: "新增帳號", exact: true });
+  await drawer.getByLabel("存取模式", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("單一根目錄", { exact: true })
+    .click();
   await drawer.getByRole("button", { name: "選擇資料夾" }).click();
   await drawer.getByText("所有檔案", { exact: true }).click();
   await expect(

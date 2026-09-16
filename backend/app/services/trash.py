@@ -120,6 +120,8 @@ class TrashService:
         with MUTATION_LOCK:
             operations.check_cancel(job.id)
             source = self.files.resolve(item["source"])
+            # Recheck under the registration lock before creating a trash record.
+            self.files.assert_movable(source)
             payload_id = uuid4().hex
             target = self.payload(payload_id, create=True)
             if source.stat().st_dev != target.parent.stat().st_dev:

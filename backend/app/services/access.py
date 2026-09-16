@@ -3,6 +3,8 @@ from backend.app.models.access import PERMISSIONS, AccountAccess
 from backend.app.models.operation import TrashItem
 from backend.app.models.user import User
 from backend.app.schemas.auth import UserInfo
+from backend.app.schemas.files import DirectoryListing, FileEntry
+from backend.app.services.directories import inspect_directory
 from backend.app.services.files import FileService
 
 
@@ -22,8 +24,9 @@ def path_permissions(files, access, target):
     if not is_multiple(access):
         root = scope_root(files, access)
         return account_permissions(access) if target.is_relative_to(root) else []
+    catalog = files.directory_catalog
     for grant in access.directory_grants:
-        if getattr(files, "directory_catalog", {}).get(grant.directory_id) != grant.directory_path:
+        if catalog.get(grant.directory_id) != grant.directory_path:
             continue
         try:
             root = files.resolve(grant.directory_path)
@@ -48,8 +51,9 @@ def access_context(files, access):
         import hashlib
         import json
 
+        catalog = files.registry.access_state()
         grants = sorted(
-            (g.directory_id, g.directory_path, sorted(g.permissions), getattr(files, "directory_catalog", {}).get(g.directory_id))
+            (g.directory_id, g.directory_path, sorted(g.permissions), catalog.get(g.directory_id))
             for g in access.directory_grants
         )
         context.append(hashlib.sha256(json.dumps(grants, ensure_ascii=False).encode()).hexdigest())
@@ -57,8 +61,9 @@ def access_context(files, access):
 
 
 def granted_roots(files, access):
+    catalog = files.directory_catalog
     return [g.directory_path for g in access.directory_grants
-            if getattr(files, "directory_catalog", {}).get(g.directory_id) == g.directory_path and "browse" in g.permissions]
+            if catalog.get(g.directory_id) == g.directory_path and "browse" in g.permissions]
 
 
 def policy(db, user_id):
@@ -139,10 +144,71 @@ class ScopedFiles(FileService):
         authorize_path(self.base, access, target, self.permission, virtual=True)
         return target
 
+    def directory_entries(self):
+        with self.factory() as db:
+            access = policy(db, self.user_id)
+            if not is_multiple(access):
+                return []
+            grants = {grant.directory_id: grant for grant in access.directory_grants}
+        self.resolve("")
+        entries = []
+        for row in self.base.registry.rows():
+            grant = grants.get(row.id)
+            if not row.enabled or not grant or grant.directory_path != row.path or "browse" not in grant.permissions:
+                continue
+            status = inspect_directory(self.base, row.path)["status"]
+            modified = None
+            if status == "readable":
+                try:
+                    modified = self.base.entry(self.base.resolve(row.path)).modified
+                except (OSError, AppError):
+                    status = "unavailable"
+            entries.append(FileEntry(name=row.name, path=row.path, type="directory", size=None,
+                                     modified=modified, directory_id=row.id, directory_root=True, status=status))
+        self.resolve("")
+        return sorted(entries, key=lambda entry: (entry.name.casefold(), entry.path))
+
+    def navigation(self, path):
+        target = self.resolve(path)
+        local = target.relative_to(self.root).as_posix() if target != self.root else ""
+        scope_path, scope_name, directory_id = "", "", None
+        with self.factory() as db:
+            access = policy(db, self.user_id)
+            if is_multiple(access) and local:
+                catalog = {row.id: row for row in self.base.registry.rows() if row.enabled}
+                for grant in access.directory_grants:
+                    row = catalog.get(grant.directory_id)
+                    if (row and row.path == grant.directory_path
+                            and target.is_relative_to(self.base.root / row.path)):
+                        scope_path, scope_name, directory_id = row.path, row.name, row.id
+                        break
+                if directory_id is None:
+                    raise AppError(403, "DIRECTORY_FORBIDDEN", "沒有此目錄的操作權限。")
+        crumbs = []
+        if directory_id:
+            crumbs.append(dict(name=scope_name, path=scope_path))
+            suffix = target.relative_to(self.base.root / scope_path).as_posix()
+            parts = [] if suffix == "." else suffix.split("/")
+            prefix = scope_path
+        else:
+            parts, prefix = local.split("/") if local else [], ""
+        for part in parts:
+            prefix = f"{prefix}/{part}" if prefix else part
+            crumbs.append(dict(name=part, path=prefix))
+        parent = None if not local else (crumbs[-2]["path"] if len(crumbs) > 1 else "")
+        return dict(directory_id=directory_id, scope_path=scope_path, scope_name=scope_name,
+                    parent_path=parent, breadcrumbs=crumbs)
+
     def list_directory(self, path="", directories_only=False):
-        result = super().list_directory(path, directories_only)
+        target = self.resolve(path)
+        with self.factory() as db:
+            multiple = is_multiple(policy(db, self.user_id))
+        if multiple and target == self.base.root:
+            result = DirectoryListing(path="", entries=self.directory_entries())
+        else:
+            result = super().list_directory(path, directories_only)
         result.permissions = self.capabilities(path)
-        return result
+        return DirectoryListing.model_validate({**result.model_dump(), **self.navigation(path)})
 
     def capabilities(self, path):
         target = self.resolve(path)

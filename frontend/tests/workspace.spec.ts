@@ -88,7 +88,7 @@ test("mobile layout and empty directory", async ({ page }) => {
   await page.goto("/files");
   await login(page);
   await page
-    .getByRole("button", { name: "開啟 空資料夾", exact: true })
+    .getByRole("button", { name: "開啟 手機空目錄", exact: true })
     .click();
   await expect(page.getByText("這個資料夾還沒有檔案")).toBeVisible();
   expect(

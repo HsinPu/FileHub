@@ -10,15 +10,21 @@ def test_inventory_admin_only_and_does_not_write(client, configured):
     assert client.get("/api/v1/admin/directories").status_code == 401
     sign_in(client)
     files = client.app.state.files
-    client.app.state.directories = definitions(files, json.dumps([
+    entries = definitions(files, json.dumps([
         {"id": "empty", "name": "空資料夾", "path": "empty"},
         {"id": "missing", "name": "未掛載", "path": "missing"},
     ]))
+    from backend.app.models.directory import Directory
+    from backend.app.services.directories import path_key
+    with client.app.state.session_factory() as db:
+        for entry in entries:
+            db.add(Directory(id=entry.id, name=entry.name, path=entry.path, path_key=path_key(entry.path)))
+        db.commit()
     before = set(configured.files_root.rglob("*"))
     response = client.get("/api/v1/admin/directories")
     assert response.status_code == 200
     items = response.json()["items"]
-    assert [item["status"] for item in items] == ["readable", "readable", "missing"]
+    assert [item["status"] for item in items] == ["readable", "missing"]
     assert set(configured.files_root.rglob("*")) == before
 
 

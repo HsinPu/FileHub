@@ -61,10 +61,28 @@ export const entrySchema = z.object({
   path: z.string(),
   type: z.enum(["directory", "file"]),
   size: z.number().nullable(),
-  modified: z.string(),
+  modified: z.string().nullable(),
+  directory_id: z.string().nullable().optional(),
+  directory_root: z.boolean().optional(),
+  status: z
+    .enum(["readable", "missing", "not_directory", "unavailable"])
+    .optional(),
   created: z.string().nullable().optional(),
 });
-export const listingSchema = z.object({
+export const navigationSchema = z.object({
+  directory_id: z.string().nullable().default(null),
+  scope_path: z.string().default(""),
+  scope_name: z.string().default(""),
+  parent_path: z.string().nullable().default(null),
+  breadcrumbs: z
+    .array(z.object({ name: z.string(), path: z.string() }))
+    .default([]),
+});
+export type DirectoryNavigation = z.infer<typeof navigationSchema>;
+export const capabilitiesSchema = navigationSchema.extend({
+  permissions: z.array(z.string()),
+});
+export const listingSchema = navigationSchema.extend({
   path: z.string(),
   entries: z.array(entrySchema),
   permissions: z.array(z.string()).default([]),

@@ -1,4 +1,16 @@
-# React / FastAPI 改版進度
+# 升級紀錄
+
+## 2026-09-16：目錄登錄，資料庫版本 8
+
+- 啟動時新增 directories、directory_registry_state 資料表；原帳號、授權、路徑快照與版本保留。
+- 首次初始化一次性匯入舊 FILES_DIRECTORIES；空設定也標記完成。之後修改環境變數不會覆蓋資料庫。
+- 舊單根目錄帳號維持原有範圍；新建帳號介面預設多目錄。失效目錄授權會標示，不會自動改指其他來源。
+- 升級前停機並備份 SQLite、config 金鑰、垃圾桶及外部掛載資料。啟動後核對目錄清單、帳號授權及實際讀寫。
+- 回退程式時一併恢復升級前資料庫；本次只驗證隔離測試資料庫，未操作正式資料。
+
+操作說明：[目錄管理](DIRECTORY_MANAGEMENT.md)。下列內容是先前 React / FastAPI 改版的歷史紀錄。
+
+## 歷史：React / FastAPI 改版進度
 
 ## 範圍
 React + TypeScript + Vite + Ant Design；FastAPI 提供同源 JSON API。

@@ -71,7 +71,8 @@ def list_files(request: Request, path: str = Query("", max_length=4096)):
 
 @router.get("/capabilities")
 def capabilities(request: Request, path: str = Query("", max_length=4096)):
-    return {"path": path, "permissions": scoped(request, "browse").capabilities(path)}
+    files = scoped(request, "browse")
+    return {"path": path, "permissions": files.capabilities(path), **files.navigation(path)}
 
 
 @router.get("/tree", response_model=DirectoryListing)

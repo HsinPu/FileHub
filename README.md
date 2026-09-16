@@ -14,7 +14,7 @@ docker compose exec filehub python -m backend.app.cli bootstrap
 
 設定初始帳號後，開啟 [http://127.0.0.1:9005](http://127.0.0.1:9005)。檔案、帳號與金鑰分別保存於 Docker 資料卷，不需要建立或掛入主機資料夾；登入後即可上傳檔案。
 部署設定、備份與既有帳號搬移請見 [Docker 說明](docs/DOCKER.md)。
-進階目錄設定、管理員目錄狀態、帳號多目錄授權與操作權限請見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
+管理頁可新增共享目錄、選擇深層子目錄並分配帳號權限，不必逐筆修改 `.env`。選用 NFS 掛載、目錄狀態與操作權限請見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
 
 ## 本機開發（選用）
 

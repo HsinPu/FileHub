@@ -5,7 +5,11 @@ import { z } from "zod";
 import { api, errorMessage } from "../../lib/api";
 import PermissionPicker from "./PermissionPicker";
 
-type Grant = { directory_id: string; permissions: string[] };
+type Grant = {
+  directory_id: string;
+  permissions: string[];
+  directory_path?: string;
+};
 const catalogSchema = z.object({
   items: z.array(
     z.object({
@@ -13,6 +17,7 @@ const catalogSchema = z.object({
       name: z.string(),
       path: z.string(),
       status: z.string(),
+      enabled: z.boolean(),
     }),
   ),
 });
@@ -64,8 +69,8 @@ export default function DirectoryGrantEditor({
       {!loading && !error && !catalog.length && (
         <Alert
           type="info"
-          title="尚未宣告共享目錄"
-          description="請由部署者設定共享目錄，再於此處授權。"
+          title="尚未登錄共享目錄"
+          description="請先至目錄管理新增共享目錄，再於此處授權。"
         />
       )}
       {value.map((grant, index) => (
@@ -80,18 +85,32 @@ export default function DirectoryGrantEditor({
               placeholder="選擇共享目錄"
               loading={loading}
               value={grant.directory_id || undefined}
-              options={catalog.map((item) => ({
-                value: item.id,
-                label: `${item.name}（${item.path}）${item.status !== "readable" ? " · 無法使用" : ""}`,
-                disabled:
-                  item.status !== "readable" ||
-                  value.some(
-                    (other, otherIndex) =>
-                      otherIndex !== index && other.directory_id === item.id,
-                  ),
-              }))}
+              options={[
+                ...catalog.map((item) => ({
+                  value: item.id,
+                  label: `${item.name}（${item.path}）${!item.enabled ? " · 已停用" : item.status !== "readable" ? " · 無法使用" : ""}`,
+                  disabled:
+                    !item.enabled ||
+                    item.status !== "readable" ||
+                    value.some(
+                      (other, otherIndex) =>
+                        otherIndex !== index && other.directory_id === item.id,
+                    ),
+                })),
+                ...value
+                  .filter(
+                    (g) =>
+                      g.directory_id &&
+                      !catalog.some((item) => item.id === g.directory_id),
+                  )
+                  .map((g) => ({
+                    value: g.directory_id,
+                    label: `${g.directory_id}（未登錄）`,
+                    disabled: true,
+                  })),
+              ]}
               onChange={(directory_id) =>
-                change(index, { ...grant, directory_id })
+                change(index, { directory_id, permissions: grant.permissions })
               }
             />
             <Button
@@ -102,6 +121,28 @@ export default function DirectoryGrantEditor({
               }
             />
           </div>
+          {grant.directory_id &&
+            !loading &&
+            !error &&
+            (() => {
+              const item = catalog.find((row) => row.id === grant.directory_id);
+              const reason = !item
+                ? "未登錄"
+                : grant.directory_path && grant.directory_path !== item.path
+                  ? "路徑不符"
+                  : !item.enabled
+                    ? "已停用"
+                    : item.status !== "readable"
+                      ? "目錄無法使用"
+                      : "";
+              return reason ? (
+                <Alert
+                  type="warning"
+                  title={reason}
+                  description={`授權時位置：${grant.directory_path || "尚未儲存"}${item ? `；目前位置：${item.path}` : ""}。可移除此授權；重新啟用帳號前須修正失效項目。`}
+                />
+              ) : null;
+            })()}
           <PermissionPicker
             value={grant.permissions}
             onChange={(permissions) => change(index, { ...grant, permissions })}
@@ -110,7 +151,17 @@ export default function DirectoryGrantEditor({
       ))}
       <Button
         icon={<PlusOutlined />}
-        disabled={loading || !!error || value.length >= catalog.length}
+        disabled={
+          loading ||
+          !!error ||
+          value.some((g) => !g.directory_id) ||
+          !catalog.some(
+            (item) =>
+              item.enabled &&
+              item.status === "readable" &&
+              !value.some((g) => g.directory_id === item.id),
+          )
+        }
         onClick={() =>
           onChange?.([
             ...value,

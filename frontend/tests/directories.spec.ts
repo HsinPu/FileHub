@@ -37,6 +37,11 @@ test("account scope status and permission presets update without granting share"
   await page.goto("/settings/accounts");
   await page.getByRole("button", { name: "新增帳號", exact: true }).click();
   const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("存取模式", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("單一根目錄", { exact: true })
+    .click();
   await dialog.getByRole("button", { name: "選擇資料夾" }).click();
   await dialog.getByText("專案文件", { exact: true }).click();
   await expect(dialog.getByRole("status")).toContainText("可讀取");
@@ -66,7 +71,10 @@ test("multi-directory editor saves separate grants and remains usable at three w
     .getByLabel("初始密碼", { exact: true })
     .fill("Multi-initial-123");
   await dialog.getByLabel("存取模式", { exact: true }).click();
-  await page.getByText("多目錄授權", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("多目錄授權", { exact: true })
+    .click();
   await dialog.getByRole("button", { name: "新增目錄授權" }).click();
   await dialog.getByRole("combobox", { name: "授權目錄 1" }).click();
   await page.getByText("專案文件（專案文件）", { exact: true }).click();
@@ -168,7 +176,7 @@ test("multi-directory copy dialog rejects read-only destination and copies to wr
     dialog.getByText("此目的地沒有所需權限，請選擇其他目錄。"),
   ).toBeVisible();
   await expect(dialog.getByRole("button", { name: "確認執行" })).toBeDisabled();
-  await dialog.getByText("空資料夾", { exact: true }).click();
+  await dialog.getByText("工作目錄", { exact: true }).click();
   await expect(dialog.getByRole("button", { name: "確認執行" })).toBeEnabled();
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 960 });

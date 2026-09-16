@@ -38,6 +38,11 @@ class FileService:
                 raise ValueError("FILES_ROOT 不能包含應用程式、設定或帳號資料庫目錄。")
         self.root.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def directory_catalog(self):
+        registry = getattr(self, "registry", None)
+        return registry.catalog() if registry else {}
+
     def resolve(self, path: str) -> Path:
         if (
             "\\" in path
@@ -65,9 +70,13 @@ class FileService:
 
     def assert_movable(self, target: Path):
         base = getattr(self, "base", self)
+        roots = list(getattr(base, "deployment_roots", ()))
+        registry = getattr(base, "registry", None)
+        if registry:
+            roots.extend(base.root / row.path for row in registry.rows())
         if target.is_mount() or any(
             root == target or root.is_relative_to(target)
-            for root in getattr(base, "deployment_roots", ())
+            for root in roots
         ):
             raise AppError(400, "MOUNT_ROOT", "不能重新命名、搬移或刪除部署目錄；請進入目錄操作檔案。")
 

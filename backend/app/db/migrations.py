@@ -2,6 +2,7 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 
 from backend.app.models.access import PERMISSIONS, AccountAccess, AuditEvent, DirectoryGrant
+from backend.app.models.directory import Directory, DirectoryRegistryState
 from backend.app.models.operation import Operation, SchemaMigration, TrashItem
 from backend.app.models.share import FileShare
 from backend.app.models.upload import UploadBatch
@@ -54,4 +55,9 @@ def migrate(engine):
                     connection.execute(text("ALTER TABLE audit_events ADD COLUMN details JSON"))
                 DirectoryGrant.__table__.create(connection, checkfirst=True)
                 db.add(SchemaMigration(version=7))
+                db.flush()
+            if db.get(SchemaMigration, 8) is None:
+                Directory.__table__.create(connection, checkfirst=True)
+                DirectoryRegistryState.__table__.create(connection, checkfirst=True)
+                db.add(SchemaMigration(version=8))
                 db.flush()

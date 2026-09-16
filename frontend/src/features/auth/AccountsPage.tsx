@@ -7,7 +7,7 @@ import { DirectoryTree } from "../files/DirectoryTree";
 import {
   directoryStatusLabels,
   directoryStatusSchema,
-} from "./DirectoriesPage";
+} from "../../lib/directories";
 import {
   Alert,
   App,
@@ -154,7 +154,7 @@ export default function AccountsPage({
             role: "user",
             enabled: false,
             permissions: [],
-            scope_mode: "single",
+            scope_mode: "multiple",
             directory_grants: [],
           }
         : account,
@@ -533,6 +533,13 @@ export default function AccountsPage({
             ) : (
               <>
                 <h3 className="account-section-title">存取範圍</h3>
+                {editing !== "new" && editing?.scope_mode === "single" && (
+                  <Alert
+                    type="info"
+                    title="此帳號沿用單一根目錄"
+                    description={`原範圍：${editing?.root || "/（根目錄）"}。轉為多目錄授權後，將以所選入口取代原範圍；請逐一確認權限。`}
+                  />
+                )}
                 <Form.Item name="scope_mode" label="存取模式">
                   <Select
                     options={[

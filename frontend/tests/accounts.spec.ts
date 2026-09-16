@@ -15,6 +15,11 @@ test("administrator creates scoped account, forced password change and read-only
     .getByLabel("初始密碼", { exact: true })
     .fill("Reader-initial-123");
   await dialog.getByRole("switch").click();
+  await dialog.getByLabel("存取模式", { exact: true }).click();
+  await page
+    .locator(".ant-select-dropdown:visible")
+    .getByText("單一根目錄", { exact: true })
+    .click();
   await dialog.getByRole("button", { name: "選擇資料夾" }).click();
   await dialog.getByText("專案文件", { exact: true }).click();
   await dialog.getByLabel("瀏覽", { exact: true }).check();

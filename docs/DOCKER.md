@@ -19,7 +19,7 @@ Linux 不需要建立 `srv/` 或設定主機目錄權限。Docker 會建立檔�
 
 | 資料 | 位置 |
 | --- | --- |
-| 帳號、登入連線 | Compose `database` volume，容器 `/app/database` |
+| 帳號、登入連線、目錄登錄及授權 | Compose `database` volume，容器 `/app/database` |
 | 隨機登入金鑰 | Compose `config` volume，容器 `/app/config/session.key` |
 | 管理的檔案 | Compose `files` volume，容器 `/files` |
 
@@ -35,6 +35,35 @@ COOKIE_SECURE=false
 
 預設沒有主機資料夾掛載，也不讀取 `DOCKER_FILES_DIR`。
 修改連接埠後執行 `docker compose up -d --wait` 套用。
+
+## 選用：掛入 Linux /nfs，再由管理頁分配子目錄
+
+先在 Linux 主機完成 NFS 掛載，確認 `/nfs` 的實際來源及容器 UID/GID 1000 所需的權限。目錄存在本身不代表 NFS 已掛載成功。
+
+在 `compose.yaml` 的 `services.filehub.volumes` 保留原有三個資料卷，再附加以下項目（不是取代整個 volumes）：
+
+```yaml
+      - type: bind
+        source: /nfs
+        target: /files/nfs
+        bind:
+          create_host_path: false
+```
+
+若整個來源僅供讀取，可在同一項加入 `read_only: true`。`create_host_path: false` 防止來源不存在時自動建立空目錄；不能替你檢查 NFS 是否已掛上。
+
+```bash
+docker compose config
+docker compose up -d --build --wait
+```
+
+管理頁登錄 `nfs/reports` 或 `nfs/departments/it`，再到帳號管理授權即可。日後在同一掛載內新增普通子目錄，只需登錄與授權，不必修改 `.env` 或重啟。若新增的是另一個 NFS 子掛載，先在主機掛好，再重新建立容器並驗證可見性：
+
+```bash
+docker compose up -d --force-recreate --wait
+```
+
+此版不自動調整掛載傳播、不以符號連結繞過容器邊界。跨檔案系統垃圾桶與搬移仍有限制。請用測試檔驗證目錄讀寫、不同帳號可見範圍、跨目錄複製、停用撤權，以及重建容器後設定保留。完整操作見 [目錄管理](DIRECTORY_MANAGEMENT.md)。目前開發環境沒有 Docker，此次未執行真實 Linux／NFS 驗收。
 
 ## 更新、檢查與停止
 

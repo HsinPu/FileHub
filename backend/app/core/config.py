@@ -19,6 +19,7 @@ class Settings:
     frontend_dist: Path
     secure_cookie: bool = False
     session_hours: int = 24
+    # Legacy catalog: imported once into the directory registry at initialization.
     directories_json: str = "[]"
 
     @classmethod

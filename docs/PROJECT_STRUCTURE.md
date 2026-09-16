@@ -20,7 +20,7 @@ filehub/
 │  ├─ app/services/trash.py      # 垃圾桶搬移／還原與重啟核對
 │  ├─ app/services/folder_uploads.py # 上傳階層驗證、批次映射與重送保護
 │  ├─ app/services/archives.py   # ZIP 串流打包、容量與到期清理
-│  ├─ app/db/migrations.py       # 版本 2 任務、版本 3 垃圾桶、版本 4 上傳批次
+│  ├─ app/db/migrations.py       # 資料庫遷移，含版本 8 目錄登錄
 │  ├─ app/core/                  # 設定、密碼／JWT、登入節流、領域錯誤
 │  ├─ app/models/                # 相容舊 users 表及新增 sessions 表
 │  ├─ app/db/                    # SQLAlchemy engine 與 session factory
@@ -69,8 +69,8 @@ React 元件 → API client → FastAPI router → 檔案服務／帳號資料�
 
 所有檔案 API 都需要登入；每個寫入要求包含 `X-Requested-With: Files-App`。
 批次任務的 request_id 使用 UUID，重送相同內容取得原任務，不同內容回報 409。kind 為 copy／move／trash／restore／archive，conflict 為 skip／keep_both。任務背景執行並保存於 SQLite；API 202 代表已接受，不代表檔案已完成操作。
-FileEntry 為 `{name,path,type,size,modified}`；type 是 `directory` 或 `file`，size 是位元組或 null，modified 是含時區的 ISO 時間。
-API path 為根目錄內的相對路徑，使用 `/`，根目錄為空字串。不回傳伺服器絕對路徑。
+FileEntry 為 `{name,path,type,size,modified}`；type 是 `directory` 或 `file`，size 是位元組或 null，modified 是含時區的 ISO 時間，離線共享入口可為 null。
+API path 為根目錄內的相對路徑，使用 `/`，根目錄為空字串。一般檔案 API 不回傳伺服器絕對路徑；管理員目錄狀態另外顯示容器根位置。
 文字 content 是文字，圖片 content 是 Base64；前端只透過文字節點或 img 顯示，沒有 HTML 注入。
 錯誤格式為 `{error:{code,message}}`；包含 400、401、403、404、409、413、415、422、429。
 
@@ -90,9 +90,24 @@ API path 為根目錄內的相對路徑，使用 `/`，根目錄為空字串。�
 | POST | `/api/v1/public-shares/open` | token、選填 password；回傳公開資訊及短期下載 Cookie |
 | GET／HEAD | `/api/v1/public-shares/download/{id}` | 需短期 Cookie，逐次重新驗證分享 |
 
-`/auth/login` 與 `/auth/me` 額外回傳 role、permissions、must_change_password。一般檔案 API path 改為相對於登入者根目錄。詳細規則見 PHASE4.md。
+`/auth/login` 與 `/auth/me` 額外回傳 role、permissions、must_change_password。單目錄帳號的檔案 API path 相對於登入者根目錄；多目錄帳號使用系統檔案根目錄的相對路徑。詳細規則見 PHASE4.md。
 
 前端依賴由 package-lock.json 鎖定；後端 requirements.in 宣告直接依賴，requirements.txt 鎖定正式依賴，requirements-dev.txt 加入測試工具。
 更新後端鎖定檔可使用 `uv pip compile backend/requirements.in --universal -o backend/requirements.txt`，再對開發檔加上正式鎖定檔 constraint。
 
 實作參考：[Ant Design + Vite](https://ant.design/docs/react/use-with-vite/)、[FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/)。
+
+
+## 後台目錄登錄（資料庫版本 8）
+
+- `backend/app/models/directory.py`：持久化目錄、版本及一次性匯入狀態。
+- `backend/app/services/directories.py`：登錄、路徑衝突、狀態檢查、停用撤權及影響清單。
+- `backend/app/api/routes/directories.py`：管理員登錄／選擇器 API 與帳號入口 API。
+- `backend/app/services/access.py`：動態授權、虛擬根、深層授權目錄與導覽邊界。
+- `frontend/src/features/auth/DirectoriesPage.tsx`、`DirectoryBrowser.tsx`：管理頁與單層選擇器。
+- `frontend/src/features/auth/DirectoryGrantEditor.tsx`：每個目錄授權與失效狀態。
+- `frontend/src/features/files/FilesPage.tsx`、`DirectoryTree.tsx`、`OperationPanel.tsx`：入口別名、受限導覽及操作目的地。
+
+多目錄帳號的 path 相對於系統檔案根目錄；單目錄帳號維持相對於帳號根目錄。檔案列表與 capabilities 回傳 scope_path、scope_name、directory_id、parent_path、breadcrumbs；客戶端不自行拼出未授權的祖先路徑。
+
+虛擬根 FileEntry 增加 directory_id、directory_root、status，離線入口 modified 可為 null。管理員目錄狀態包含容器根位置；一般帳號入口只回傳相對路徑。完整 API 表與操作規則見 [目錄管理](DIRECTORY_MANAGEMENT.md)。

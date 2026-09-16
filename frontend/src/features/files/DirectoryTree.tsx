@@ -49,7 +49,11 @@ export function DirectoryTree({
             key: "",
             icon: <FolderOutlined />,
             children: result.entries.map((entry) => ({
-              title: entry.name,
+              title:
+                entry.directory_root && entry.status !== "readable"
+                  ? `${entry.name} · 無法存取`
+                  : entry.name,
+              disabled: entry.directory_root && entry.status !== "readable",
               key: entry.path,
               icon: <FolderOutlined />,
             })),
@@ -77,7 +81,11 @@ export function DirectoryTree({
             node.key,
             result.entries.map((entry) => ({
               key: entry.path,
-              title: entry.name,
+              title:
+                entry.directory_root && entry.status !== "readable"
+                  ? `${entry.name} · 無法存取`
+                  : entry.name,
+              disabled: entry.directory_root && entry.status !== "readable",
               icon: <FolderOutlined />,
             })),
           ),

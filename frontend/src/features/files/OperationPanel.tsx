@@ -16,7 +16,12 @@ import {
   Space,
   Tag,
 } from "antd";
-import { api, errorMessage, type FileEntry } from "../../lib/api";
+import {
+  api,
+  capabilitiesSchema,
+  errorMessage,
+  type FileEntry,
+} from "../../lib/api";
 import { DirectoryTree } from "./DirectoryTree";
 import { downloadUrl } from "./download";
 import {
@@ -48,6 +53,7 @@ export function useOperations(
   const [destinationCheck, setDestinationCheck] = useState<{
     key: string;
     error: string;
+    breadcrumbs?: { name: string; path: string }[];
   } | null>(null);
   const [jobs, setJobs] = useState<Operation[]>([]);
   const [open, setOpen] = useState(false);
@@ -135,7 +141,7 @@ export function useOperations(
       destinations.map((path) =>
         api(
           `/files/capabilities?path=${encodeURIComponent(path)}`,
-          z.object({ permissions: z.array(z.string()) }),
+          capabilitiesSchema,
           { signal: controller.signal },
         ),
       ),
@@ -144,6 +150,7 @@ export function useOperations(
         if (!controller.signal.aborted)
           setDestinationCheck({
             key: destinationKey,
+            breadcrumbs: results.length === 1 ? results[0].breadcrumbs : [],
             error: results.every(({ permissions }) =>
               required.every((p) => permissions.includes(p)),
             )
@@ -290,10 +297,10 @@ export function useOperations(
                     <Breadcrumb
                       items={[
                         { title: rootLabel },
-                        ...dialog.destination
-                          .split("/")
-                          .filter(Boolean)
-                          .map((part) => ({ title: part })),
+                        ...(destinationCheck?.key === destinationKey
+                          ? (destinationCheck.breadcrumbs ?? [])
+                          : []
+                        ).map((crumb) => ({ title: crumb.name })),
                       ]}
                     />
                     <p className="operation-path">

@@ -1,13 +1,29 @@
 import pytest
 
 from backend.app.models.access import AccountAccess, DirectoryGrant
+from backend.app.models.directory import Directory
+from backend.app.services.directories import path_key
 from backend.tests.test_access import HEADERS, login, seed
 from backend.tests.test_app import sign_in
 
 
+def change_catalog(client, directory_id, path=None):
+    # Simulate external catalog corruption/removal; the public API never rebinds paths.
+    with client.app.state.session_factory() as db:
+        row = db.get(Directory, directory_id)
+        if path is None:
+            db.delete(row)
+        else:
+            row.path = path
+        db.commit()
+
+
 def multi(client):
     files = client.app.state.files
-    files.directory_catalog = {"work": "empty", "reports": "中文 O'Brien", "secret": "secret"}
+    with client.app.state.session_factory() as db:
+        for key, path in {"work": "empty", "reports": "中文 O'Brien", "secret": "secret"}.items():
+            db.add(Directory(id=key, name=path, path=path, path_key=path_key(path)))
+        db.commit()
     (files.root / "secret").mkdir()
     (files.root / "secret/private.txt").write_text("private")
     user_id = seed(client)
@@ -42,7 +58,7 @@ def test_virtual_root_and_independent_permissions(client):
 
 def test_catalog_change_fails_closed(client):
     multi(client)
-    client.app.state.files.directory_catalog["work"] = "secret"
+    change_catalog(client, "work", "secret")
     assert client.get("/api/v1/files", params={"path": "empty"}).status_code == 403
     assert client.get("/api/v1/files", params={"path": "secret"}).status_code == 403
     assert [e["path"] for e in client.get("/api/v1/files").json()["entries"]] == ["中文 O'Brien"]
@@ -162,11 +178,11 @@ def test_catalog_change_rejects_job_replay_and_folder_upload_mapping(client):
     job = finish(client, response)
     batch_key = str(uuid4())
     assert prepare(client, destination="empty", request_id=batch_key).status_code == 200
-    client.app.state.files.directory_catalog.pop("reports")
+    change_catalog(client, "reports")
     assert client.get(f"/api/v1/files/operations/{job['id']}").status_code == 403
     assert submit(client, paths=["中文 O'Brien/hello.txt"], request_id=key).status_code == 403
     assert prepare(client, destination="empty", request_id=batch_key).status_code == 409
-    client.app.state.files.directory_catalog.pop("work")
+    change_catalog(client, "work")
     assert prepare(client, destination="empty", request_id=batch_key).status_code == 403
 
 
@@ -237,7 +253,7 @@ def test_trash_filters_allowed_scopes_before_pagination(client):
         db.add(TrashItem(id=uuid4().hex, original_path="empty/visible.txt", kind="file", deleted_by="scoped", deleted_at=1, status="available", source_identity=[0, 0]))
         db.commit()
     assert [item["original_path"] for item in client.get("/api/v1/trash").json()] == ["empty/visible.txt"]
-    client.app.state.files.directory_catalog.pop("work")
+    change_catalog(client, "work")
     assert client.get("/api/v1/trash").json() == []
 
 
@@ -301,7 +317,7 @@ def account_payload(client, user_id):
 
 def test_name_update_does_not_rebind_remapped_grant(client):
     user_id = multi(client)
-    client.app.state.files.directory_catalog["reports"] = "secret"
+    change_catalog(client, "reports", "secret")
     sign_in(client)
     before = account_payload(client, user_id)
     response = client.put(f"/api/v1/admin/accounts/{user_id}", headers=HEADERS, json={**before, "full_name": "Name only"})
@@ -318,9 +334,9 @@ def test_stale_grant_disable_revokes_session_and_cannot_reenable(client, change)
     user_id = multi(client)
     cookie = client.cookies.get(COOKIE_NAME)
     if change == "removed":
-        client.app.state.files.directory_catalog.pop("reports")
+        change_catalog(client, "reports")
     elif change == "remapped":
-        client.app.state.files.directory_catalog["reports"] = "secret"
+        change_catalog(client, "reports", "secret")
     else:
         source = client.app.state.files.root / "中文 O'Brien"
         source.rename(source.parent / "unavailable-reports")
@@ -343,7 +359,7 @@ def test_stale_grant_disable_revokes_session_and_cannot_reenable(client, change)
 
 def test_rebind_requires_removal_then_new_grant(client):
     user_id = multi(client)
-    client.app.state.files.directory_catalog["reports"] = "secret"
+    change_catalog(client, "reports", "secret")
     sign_in(client)
     before = account_payload(client, user_id)
     changed = [{**g,"permissions":["browse"]} if g["directory_id"]=="reports" else g for g in before["directory_grants"]]

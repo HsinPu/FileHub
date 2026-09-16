@@ -23,7 +23,7 @@ def main():
         work = Path(temporary)
         root = work / "files"
         root.mkdir()
-        for name in ["專案文件", "中文 O'Brien", "空資料夾"]:
+        for name in ["專案文件", "中文 O'Brien", "空資料夾", "手機空目錄"]:
             (root / name).mkdir()
         (root / "專案文件" / "需求說明.md").write_text(
             "# 專案需求\n\nReact 與 FastAPI 改版。", encoding="utf-8"
@@ -48,7 +48,7 @@ def main():
         )
         engine, factory = open_database(config.database_path)
         with factory() as db:
-            for username in ("admin", "password-test", "settings-reader", "multi-reader"):
+            for username in ("admin", "password-test", "settings-reader", "multi-reader", "nested-reader"):
                 db.add(
                     User(
                         username=username,
@@ -61,7 +61,7 @@ def main():
                 db.add(
                     AccountAccess(
                         user_id=user.id,
-                        role="user" if user.username in {"settings-reader", "multi-reader"} else "admin",
+                        role="user" if user.username in {"settings-reader", "multi-reader", "nested-reader"} else "admin",
                         scope_mode="multiple" if user.username == "multi-reader" else "single",
                         directory_grants=[DirectoryGrant(directory_id="projects", directory_path="專案文件", permissions=["browse", "read"]), DirectoryGrant(directory_id="workspace", directory_path="空資料夾", permissions=["browse", "read", "upload", "modify", "delete"])] if user.username == "multi-reader" else [],
                         enabled=True,

@@ -8,11 +8,27 @@ class FileEntry(BaseModel):
     path: str
     type: Literal["directory", "file"]
     size: int | None
-    modified: str
+    modified: str | None
+    directory_id: str | None = None
+    directory_root: bool = False
+    status: Literal["readable", "missing", "not_directory", "unavailable"] = "readable"
     created: str | None = None
 
 
-class DirectoryListing(BaseModel):
+class Breadcrumb(BaseModel):
+    name: str
+    path: str
+
+
+class DirectoryNavigation(BaseModel):
+    directory_id: str | None = None
+    scope_path: str = ""
+    scope_name: str = ""
+    parent_path: str | None = None
+    breadcrumbs: list[Breadcrumb] = Field(default_factory=list)
+
+
+class DirectoryListing(DirectoryNavigation):
     path: str
     entries: list[FileEntry]
     permissions: list[str] = Field(default_factory=list)
