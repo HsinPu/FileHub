@@ -3,22 +3,42 @@
 React + TypeScript + Ant Design 的檔案工作空間，搭配 FastAPI 與 SQLite。
 提供登入、目錄樹、搜尋、縮圖與 PDF 預覽、資料夾上傳、ZIP 打包下載、重新命名、批次複製搬移、垃圾桶還原與剪貼簿操作。
 
-## 使用 Docker
+## Linux 安裝與設定
 
-Linux 已安裝 Docker Engine 與 Compose 時，在專案目錄執行：
+### 1. 啟動服務
+
+主機已安裝 Docker 與 Compose 後，在專案目錄執行：
+
+```bash
+docker compose up -d --build --wait
+```
+
+預設不需設定 `.env` 或掛入外部資料夾，檔案會存放在 Docker 資料卷。`--wait` 會等待服務通過健康檢查。
+
+### 2. 建立管理員帳號與密碼
+
+第一次安裝執行：
+
+```bash
+docker compose exec filehub python -m backend.app.cli bootstrap
+```
+
+依提示輸入管理員帳號及密碼。密碼由你自行設定，沒有預設密碼；輸入密碼時終端機不會顯示字元。已有管理員時不需重複執行。
+
+瀏覽器開啟 `http://你的Server-IP:9005`，使用剛建立的帳密登入。
+
+### 3. 設定資料夾
+
+**直接使用 FileHub 儲存空間**：登入後即可新增資料夾及上傳檔案，不需另外設定主機路徑。
+
+**使用 Linux 上既有的資料夾**：第一次先建立設定檔；已有 `.env` 時直接編輯，不要覆蓋：
 
 ```bash
 cp .env.example .env
-# 如需外部資料夾，編輯 .env 的 FILEHUB_MOUNT_* 設定。
-sh filehub.sh up -d --build --wait
-sh filehub.sh exec filehub python -m backend.app.cli bootstrap
+nano .env
 ```
 
-瀏覽 `http://你的Server-IP:9005`。預設綁定 `0.0.0.0`，可在 `.env` 用 `DOCKER_BIND_IP` 改成特定主機 IP 或 `127.0.0.1`。第一次安裝才需要建立管理員；已有 `.env` 時請編輯它，不要重新複製覆蓋。
-
-### 在 .env 設定多個資料夾
-
-每增加一個主機資料夾，就新增一行 `FILEHUB_MOUNT_名稱=Linux實際路徑`。左邊是入口名稱，右邊是主機上已存在的資料夾：
+每個資料夾新增一行，左邊是入口名稱，右邊是 Linux 實際路徑：
 
 ```dotenv
 FILEHUB_MOUNT_nfs=/nfs
@@ -26,62 +46,33 @@ FILEHUB_MOUNT_shared=/data/shared
 FILEHUB_MOUNT_reports=/mnt/reports
 ```
 
-| 入口名稱 | Linux 主機資料夾 | 容器內位置 | 管理頁可登錄的路徑 |
-| --- | --- | --- | --- |
-| nfs | /nfs | /files/nfs | nfs 或 nfs/reports 等子目錄 |
-| shared | /data/shared | /files/shared | shared 或 shared/team 等子目錄 |
-| reports | /mnt/reports | /files/reports | reports 或其子目錄 |
+名稱不可重複，以小寫英文字母開頭，可使用小寫字母、數字與底線。主機資料夾必須已存在；若使用 NFS，先在 Linux 上完成掛載。
 
-名稱不可重複，須以小寫英文字母開頭，只能使用小寫英文字母、數字與底線，例如 `team_a`、`backup2`。主機路徑必須是既有的絕對路徑；只填名稱不會自動建立資料夾。如果來源是 NFS，先在 Linux 主機完成掛載。
-
-修改 `.env` 後，在專案目錄執行：
+儲存後套用資料夾設定：
 
 ```bash
 sh filehub.sh up -d --build --wait
 ```
 
-接著設定存取權限：
+### 4. 登錄資料夾並分配權限
 
-1. 到「設定 → 目錄管理 → 新增目錄」，填寫顯示名稱與相對路徑，例如 `nfs/reports`。不要填主機路徑 `/nfs/reports` 或容器完整路徑 `/files/nfs/reports`。
-2. 到「帳號管理」，選擇「多目錄授權」，加入該入口並設定操作權限。
+1. 到「設定 → 目錄管理 → 新增目錄」，填寫顯示名稱與相對路徑。
+2. 到「帳號管理」，將一般帳號設為「多目錄授權」，選擇目錄並設定瀏覽、下載、上傳等權限。
 
-同一入口可登錄整個資料夾或個別子目錄，但不能同時登錄彼此重疊的父子目錄。掛入主機資料夾不會自動授權給一般帳號。
+相對路徑範例：
 
-未設定任何掛載時，仍使用原本 Docker 資料卷，登入後即可上傳檔案。同一掛載下新增普通子資料夾，只需在管理頁登錄與授權，不必再修改 `.env` 或重啟。
+| 資料夾來源 | 管理頁填寫 |
+| --- | --- |
+| 在 FileHub 根目錄建立的 shared 資料夾 | shared |
+| 掛入的 /nfs/reports | nfs/reports |
+| 掛入的 /data/shared | shared |
+| 掛入的 /mnt/reports | reports |
 
-`sh filehub.sh` 自動讀取專案 `.env`，產生暫存掛載設定並交給 Docker Compose；不需要主機 Python 或 Node。使用 FILEHUB_MOUNT_* 時，啟動、更新及重建都使用此工具，直接 `docker compose up` 不會讀取這些自訂掛載。只使用基本資料卷時，原有 `docker compose up -d --build --wait` 仍可使用。
+管理頁不用填 `/files/` 或主機完整路徑。只會顯示一般帳號獲得授權的入口；不能同時登錄重疊的父子目錄。同一掛載下新增普通子資料夾，只需在管理頁登錄與授權，不必修改 `.env` 或重啟。
 
-部署設定、權限、備份與既有帳號搬移請見 [Docker 說明](docs/DOCKER.md)。管理頁設定及操作限制見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
+預設開放 `0.0.0.0:9005`，可在 `.env` 用 `DOCKER_BIND_IP`、`DOCKER_PORT` 調整。資料卷會保留檔案、帳號與金鑰；不要使用 `docker compose down -v`，它會刪除資料卷。
 
-## 本機開發（選用）
-
-以下 PowerShell 指令均從儲存庫根目錄執行：
-
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r backend/requirements-dev.txt
-.\.venv\Scripts\python.exe -m backend.app.cli bootstrap
-```
-
-後端：
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-另一個終端啟動前端：
-
-```powershell
-cd frontend
-npm ci
-npm run dev
-```
-
-瀏覽 `http://127.0.0.1:5173`。Vite 將 `/api` 代理至後端，保持同源 Cookie 與 Origin 檢查。
-使用不同後端連接埠時，啟動 Vite 前設定 `$env:API_PROXY_TARGET = 'http://127.0.0.1:8001'`。
-
-Linux/macOS 使用 `python3 -m venv .venv` 與 `.venv/bin/python`，其餘 npm 指令相同。
-正式執行先於 frontend 執行 `npm run build`，FastAPI 會提供 `frontend/dist`。不需要另外部署 Node 伺服器。
+更多部署、權限與備份說明見 [Docker 說明](docs/DOCKER.md) 與 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
 
 ## 設定
 
