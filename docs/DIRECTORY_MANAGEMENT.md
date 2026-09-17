@@ -11,7 +11,7 @@ Docker 先掛入父目錄，管理員再到「設定 → 目錄管理」登錄�
 | /nfs/reports | nfs/reports | 報表中心 |
 | /nfs/departments/it | nfs/departments/it | IT 文件 |
 
-基本 Compose 仍使用 Docker `files` 資料卷，不需要外部目錄。選用 NFS 的掛載方式見 [Docker 說明](DOCKER.md)。管理頁只選擇容器已能存取的目錄，不會替主機掛載 NFS。
+基本 Compose 仍使用 Docker `files` 資料卷，不需要外部目錄。主機來源可在 `.env` 設定 `FILEHUB_MOUNT_nfs=/nfs`，再以 `sh filehub.sh up -d --build --wait` 套用；多目錄設定見 [Docker 說明](DOCKER.md)。管理頁只選擇容器已能存取的目錄，不會替主機掛載 NFS。
 
 ## 登錄目錄
 

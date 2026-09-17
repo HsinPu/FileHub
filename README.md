@@ -5,16 +5,53 @@ React + TypeScript + Ant Design 的檔案工作空間，搭配 FastAPI 與 SQLit
 
 ## 使用 Docker
 
-使用 Docker Engine 與 Compose，或啟動 Docker Desktop（Linux containers），在本專案根目錄執行：
+Linux 已安裝 Docker Engine 與 Compose 時，在專案目錄執行：
 
-```powershell
-docker compose up -d --build --wait
-docker compose exec filehub python -m backend.app.cli bootstrap
+```bash
+cp .env.example .env
+# 如需外部資料夾，編輯 .env 的 FILEHUB_MOUNT_* 設定。
+sh filehub.sh up -d --build --wait
+sh filehub.sh exec filehub python -m backend.app.cli bootstrap
 ```
 
-設定初始帳號後，開啟 [http://127.0.0.1:9005](http://127.0.0.1:9005)。檔案、帳號與金鑰分別保存於 Docker 資料卷，不需要建立或掛入主機資料夾；登入後即可上傳檔案。
-部署設定、備份與既有帳號搬移請見 [Docker 說明](docs/DOCKER.md)。
-管理頁可新增共享目錄、選擇深層子目錄並分配帳號權限，不必逐筆修改 `.env`。選用 NFS 掛載、目錄狀態與操作權限請見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
+瀏覽 `http://你的Server-IP:9005`。預設綁定 `0.0.0.0`，可在 `.env` 用 `DOCKER_BIND_IP` 改成特定主機 IP 或 `127.0.0.1`。第一次安裝才需要建立管理員；已有 `.env` 時請編輯它，不要重新複製覆蓋。
+
+### 在 .env 設定多個資料夾
+
+每增加一個主機資料夾，就新增一行 `FILEHUB_MOUNT_名稱=Linux實際路徑`。左邊是入口名稱，右邊是主機上已存在的資料夾：
+
+```dotenv
+FILEHUB_MOUNT_nfs=/nfs
+FILEHUB_MOUNT_shared=/data/shared
+FILEHUB_MOUNT_reports=/mnt/reports
+```
+
+| 入口名稱 | Linux 主機資料夾 | 容器內位置 | 管理頁可登錄的路徑 |
+| --- | --- | --- | --- |
+| nfs | /nfs | /files/nfs | nfs 或 nfs/reports 等子目錄 |
+| shared | /data/shared | /files/shared | shared 或 shared/team 等子目錄 |
+| reports | /mnt/reports | /files/reports | reports 或其子目錄 |
+
+名稱不可重複，須以小寫英文字母開頭，只能使用小寫英文字母、數字與底線，例如 `team_a`、`backup2`。主機路徑必須是既有的絕對路徑；只填名稱不會自動建立資料夾。如果來源是 NFS，先在 Linux 主機完成掛載。
+
+修改 `.env` 後，在專案目錄執行：
+
+```bash
+sh filehub.sh up -d --build --wait
+```
+
+接著設定存取權限：
+
+1. 到「設定 → 目錄管理 → 新增目錄」，填寫顯示名稱與相對路徑，例如 `nfs/reports`。不要填主機路徑 `/nfs/reports` 或容器完整路徑 `/files/nfs/reports`。
+2. 到「帳號管理」，選擇「多目錄授權」，加入該入口並設定操作權限。
+
+同一入口可登錄整個資料夾或個別子目錄，但不能同時登錄彼此重疊的父子目錄。掛入主機資料夾不會自動授權給一般帳號。
+
+未設定任何掛載時，仍使用原本 Docker 資料卷，登入後即可上傳檔案。同一掛載下新增普通子資料夾，只需在管理頁登錄與授權，不必再修改 `.env` 或重啟。
+
+`sh filehub.sh` 自動讀取專案 `.env`，產生暫存掛載設定並交給 Docker Compose；不需要主機 Python 或 Node。使用 FILEHUB_MOUNT_* 時，啟動、更新及重建都使用此工具，直接 `docker compose up` 不會讀取這些自訂掛載。只使用基本資料卷時，原有 `docker compose up -d --build --wait` 仍可使用。
+
+部署設定、權限、備份與既有帳號搬移請見 [Docker 說明](docs/DOCKER.md)。管理頁設定及操作限制見 [目錄管理](docs/DIRECTORY_MANAGEMENT.md)。
 
 ## 本機開發（選用）
 
@@ -48,7 +85,7 @@ Linux/macOS 使用 `python3 -m venv .venv` 與 `.venv/bin/python`，其餘 npm �
 
 ## 設定
 
-Docker 部署可在 `.env` 設定 `DOCKER_PORT`（預設 9005）與 `COOKIE_SECURE`。以下路徑設定適用於本機開發；Docker 使用 Compose 指定的容器路徑。
+Docker 部署可在 `.env` 設定 `DOCKER_BIND_IP`（預設 0.0.0.0）、`DOCKER_PORT`（預設 9005）、`COOKIE_SECURE`，以及由 `filehub.sh` 讀取的 `FILEHUB_MOUNT_*`。以下路徑設定適用於本機開發；Docker 使用 Compose 指定的容器路徑。
 
 複製 `.env.example` 為 `.env`，只有需要變更時才設定。環境變數優先於 `.env`。
 
@@ -70,7 +107,7 @@ Docker 部署可在 `.env` 設定 `DOCKER_PORT`（預設 9005）與 `COOKIE_SECU
 - JWT 儲存在 HttpOnly、SameSite=Strict Cookie；不使用 localStorage 保存權杖。
 - Session 存在資料庫中；登出撤銷目前連線，修改密碼驗證舊密碼並撤銷所有連線。
 - 寫入 API 要求 `X-Requested-With: Files-App`；有 Origin 時驗證同源，不開 CORS。
-- Docker Compose 預設只將連接埠發布到主機 loopback。若要網路部署，使用 HTTPS 反向代理並保留正確的 Host／scheme；只信任指定代理。
+- Docker Compose 預設對主機所有 IPv4 介面開放 9005；防火牆請限制允許來源。使用 HTTPS 反向代理時可將 `DOCKER_BIND_IP` 設為 `127.0.0.1`，並保留正確的 Host／scheme。
 - 登入節流目前為單一程序、每來源 IP 五分鐘 10 次；本版以單一 worker 執行為基準。
 
 ## 功能範圍與限制
@@ -88,7 +125,7 @@ Docker 部署可在 `.env` 設定 `DOCKER_PORT`（預設 9005）與 `COOKIE_SECU
 - 剪下／複製／貼上按鈕與 Ctrl／Command+C、X、V；Delete 開啟移至垃圾桶確認。剪貼簿只作用於此頁面，重新整理後清除。
 - 資料夾選取／拖放保留階層，最多 1,000 項、32 層、合計 5 GB；根目錄同名可略過或保留兩者。選取器無法帶入空目錄，拖放目錄可保留。
 - 多檔／資料夾 ZIP 背景打包可取消；來源上限 1 GB／10,000 項，完成後保留一小時。詳見 [第三階段操作與驗收](docs/PHASE3.md)。
-- 單檔分享支援期限、選填密碼及撤銷；受限帳號只能存取指定根目錄。詳見 [第四階段操作與權限](docs/PHASE4.md)。目前 loopback 分享網址僅供本機開啟，網路分享需另行部署 HTTPS。
+- 單檔分享支援期限、選填密碼及撤銷；受限帳號只能存取指定根目錄。詳見 [第四階段操作與權限](docs/PHASE4.md)。分享網址使用開啟網站的位址；跨電腦使用時請以 Server IP 或網域登入，正式網路分享應部署 HTTPS。
 - 服務假設本機檔案系統由可信任的使用者管理；不提供對抗本機惡意程序競態替換檔案的隔離沙箱。
 
 ## 驗證

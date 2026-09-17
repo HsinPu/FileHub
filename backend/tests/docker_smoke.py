@@ -32,6 +32,7 @@ def main():
         env = {
             **os.environ,
             "DOCKER_PORT": str(port),
+            "DOCKER_BIND_IP": "127.0.0.1",
             "COOKIE_SECURE": "false",
         }
         command = ["docker", "compose", "-p", project]

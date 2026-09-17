@@ -5,7 +5,7 @@ services:
     init: true
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${DOCKER_PORT:-9005}:8000"
+      - "${DOCKER_BIND_IP:-0.0.0.0}:${DOCKER_PORT:-9005}:8000"
     environment:
       FILES_ROOT: /files
       DATABASE_PATH: /app/database/users.db
