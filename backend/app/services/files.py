@@ -1,8 +1,8 @@
 import base64
 import re
 import stat
-import subprocess
 from datetime import UTC, datetime
+from os import stat_result
 from pathlib import Path, PureWindowsPath
 
 from backend.app.core.errors import AppError
@@ -80,19 +80,10 @@ class FileService:
         ):
             raise AppError(400, "MOUNT_ROOT", "不能重新命名、搬移或刪除部署目錄；請進入目錄操作檔案。")
 
-    def entry(self, path: Path) -> FileEntry:
-        info = path.stat()
+    def entry(self, path: Path, *, info: stat_result | None = None) -> FileEntry:
+        info = info if info is not None else path.stat()
         directory = stat.S_ISDIR(info.st_mode)
         born = getattr(info, "st_birthtime", None)
-        if born is None:
-            try:
-                result = subprocess.run(
-                    ["stat", "--format=%W", "--", str(path)],
-                    capture_output=True, text=True, timeout=1, check=True,
-                )
-                born = int(result.stdout.strip()) or None
-            except (OSError, ValueError, subprocess.SubprocessError):
-                born = None
         return FileEntry(
             name=path.name,
             path=path.relative_to(self.root).as_posix(),
@@ -112,10 +103,12 @@ class FileService:
         for item in target.iterdir():
             try:
                 safe = self.resolve(item.relative_to(self.root).as_posix())
-                if not safe.is_dir() and not safe.is_file():
+                info = safe.stat()
+                directory = stat.S_ISDIR(info.st_mode)
+                if not directory and not stat.S_ISREG(info.st_mode):
                     continue
-                if not directories_only or safe.is_dir():
-                    entries.append(self.entry(safe))
+                if not directories_only or directory:
+                    entries.append(self.entry(safe, info=info))
             except (AppError, OSError):
                 continue
         entries.sort(key=lambda entry: (entry.type != "directory", entry.name.casefold()))

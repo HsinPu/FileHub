@@ -33,6 +33,13 @@ filehub/
 └─ compose.yaml                  # Docker 部署及持久化資料卷
 ```
 
+## 前端工作區分工
+
+- `FileWorkspace`：持續掛載的上傳、背景任務、剪貼簿與最後目錄狀態；登入帳號變更時重建。
+- `WorkspaceShell`：導覽、共用版面、捲動位置、任務面板與按需載入的設定頁。
+- `FilesPage`：列表呈現、搜尋排序、選取、預覽及操作；保留跨頁的檢視狀態。
+- `useDirectoryListing`：僅在檔案頁載入列表，取消過期請求；返回時重新讀取，載入期間不沿用舊權限啟用操作。
+
 ## 資料流
 
 React 元件 → API client → FastAPI router → 檔案服務／帳號資料庫。
@@ -65,7 +72,8 @@ React 元件 → API client → FastAPI router → 檔案服務／帳號資料�
 | GET／HEAD | `/api/v1/files/operations/{id}/archive` | 擁有者下載已完成 ZIP；過期回應 410 |
 | GET | `/api/v1/trash?offset=0` | 共用垃圾桶，每頁 50 筆 |
 | POST | `/api/v1/trash/restore` | `{request_id,ids,destination?,conflict}` → 還原任務，202；null 目的地為原位置 |
-| GET | `/api/health` | `{status:"ok"}` |
+| GET | `/api/health` | 程序存活：`{status:"ok"}` |
+| GET | `/api/ready` | SQLite 與背景執行緒就緒：200 或 503；不探測 NFS |
 
 所有檔案 API 都需要登入；每個寫入要求包含 `X-Requested-With: Files-App`。
 批次任務的 request_id 使用 UUID，重送相同內容取得原任務，不同內容回報 409。kind 為 copy／move／trash／restore／archive，conflict 為 skip／keep_both。任務背景執行並保存於 SQLite；API 202 代表已接受，不代表檔案已完成操作。

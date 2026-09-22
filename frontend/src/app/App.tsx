@@ -12,9 +12,9 @@ import { AuthProvider, useAuth } from "../features/auth/AuthProvider";
 import { LoginPage } from "../features/auth/LoginPage";
 import { PasswordModal } from "../features/auth/PasswordModal";
 const PublicSharePage = lazy(() => import("../features/files/PublicSharePage"));
-const FilesPage = lazy(() =>
-  import("../features/files/FilesPage").then((module) => ({
-    default: module.FilesPage,
+const FileWorkspace = lazy(() =>
+  import("../features/files/FileWorkspace").then((module) => ({
+    default: module.FileWorkspace,
   })),
 );
 
@@ -67,7 +67,7 @@ function AuthenticatedRoutes() {
       ) : location.pathname === "/admin" ? (
         <Navigate to="/settings/accounts" replace />
       ) : (
-        <FilesPage key={user.username} />
+        <FileWorkspace key={user.username} />
       )}
     </Suspense>
   );

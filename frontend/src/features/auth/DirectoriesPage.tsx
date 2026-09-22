@@ -63,6 +63,10 @@ export default function DirectoriesPage({
   const initial = useRef("");
   const path = Form.useWatch("path", form);
   const checkRequest = useRef<AbortController | null>(null);
+  const checkTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const [checkMessage, setCheckMessage] = useState("");
   const { message, modal } = App.useApp();
   const guard = useUnsavedChanges(dirty, busy);
   useEffect(() => {
@@ -71,14 +75,24 @@ export default function DirectoriesPage({
   }, [dirty, busy, onFormState]);
   useEffect(() => {
     checkRequest.current?.abort();
+    clearTimeout(checkTimeout.current);
     setChecking(false);
     setCheck(undefined);
-    return () => checkRequest.current?.abort();
+    setCheckMessage("");
+    return () => {
+      checkRequest.current?.abort();
+      clearTimeout(checkTimeout.current);
+    };
   }, [path, editing]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError("");
+    const timeout = setTimeout(() => {
+      controller.abort();
+      setLoading(false);
+      setError("尚未取得結果；這不代表目錄離線。請稍後重新檢查。");
+    }, 10000);
     api("/admin/directories", inventorySchema, { signal: controller.signal })
       .then((value) => {
         if (!controller.signal.aborted) setData(value);
@@ -87,9 +101,13 @@ export default function DirectoriesPage({
         if (!controller.signal.aborted) setError(errorMessage(reason));
       })
       .finally(() => {
+        clearTimeout(timeout);
         if (!controller.signal.aborted) setLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
   }, [revision]);
   function edit(row: RegisteredDirectory | "new") {
     setEditing(row);
@@ -122,11 +140,18 @@ export default function DirectoriesPage({
   }
   async function checkPath() {
     checkRequest.current?.abort();
+    clearTimeout(checkTimeout.current);
     const controller = new AbortController();
     checkRequest.current = controller;
     setChecking(true);
     setFormError("");
     setCheck(undefined);
+    setCheckMessage("");
+    checkTimeout.current = setTimeout(() => {
+      controller.abort();
+      setChecking(false);
+      setCheckMessage("尚未取得結果；這不代表目錄離線。請稍後重新檢查。");
+    }, 10000);
     try {
       const result = await api(
         `/admin/directory-status?path=${encodeURIComponent(path || "")}`,
@@ -135,9 +160,12 @@ export default function DirectoriesPage({
       );
       if (!controller.signal.aborted) setCheck(result);
     } catch (reason) {
-      if (!controller.signal.aborted) setFormError(errorMessage(reason));
+      if (!controller.signal.aborted) setCheckMessage(errorMessage(reason));
     } finally {
-      if (!controller.signal.aborted) setChecking(false);
+      if (checkRequest.current === controller) {
+        clearTimeout(checkTimeout.current);
+        if (!controller.signal.aborted) setChecking(false);
+      }
     }
   }
   async function save(values: FormValues) {
@@ -229,7 +257,7 @@ export default function DirectoriesPage({
             disabled={busy}
             onClick={() => setRevision((n) => n + 1)}
           >
-            重新檢查
+            {loading ? "檢查中…" : "重新檢查"}
           </Button>
           <Button
             type="primary"
@@ -241,7 +269,24 @@ export default function DirectoriesPage({
           </Button>
         </Space>
       </header>
-      {error && <Alert type="error" showIcon title={error} />}
+      {error && (
+        <Alert
+          type="warning"
+          showIcon
+          title={error}
+          action={
+            <Button
+              onClick={() => setRevision((n) => n + 1)}
+              disabled={loading || busy}
+            >
+              重試檢查
+            </Button>
+          }
+        />
+      )}
+      {data && (loading || error) && (
+        <p role="status">以下為上次檢查結果，尚未更新。</p>
+      )}
       {data && (
         <p className="muted" style={{ overflowWrap: "anywhere" }}>
           檔案根目錄：{data.root}（
@@ -256,7 +301,13 @@ export default function DirectoriesPage({
         dataSource={data?.items ?? []}
         pagination={false}
         scroll={{ x: 1100 }}
-        locale={{ emptyText: "尚未登錄目錄，請新增要提供給帳號的資料夾。" }}
+        locale={{
+          emptyText: loading
+            ? "檢查中…"
+            : error
+              ? "尚未取得目錄清單，請重新檢查。"
+              : "尚未登錄目錄，請新增要提供給帳號的資料夾。",
+        }}
         columns={[
           { title: "名稱", dataIndex: "name", width: 140, ellipsis: true },
           { title: "相對目錄", dataIndex: "path", width: 180, ellipsis: true },
@@ -398,9 +449,12 @@ export default function DirectoriesPage({
               disabled={!path}
               onClick={() => void checkPath()}
             >
-              檢查目錄
+              {checking ? "檢查中…" : checkMessage ? "重新檢查" : "檢查目錄"}
             </Button>
           </Space>
+          {checkMessage && (
+            <Alert type="warning" showIcon title={checkMessage} />
+          )}
           {check && <p role="status">{directoryStatusLabels[check.status]}</p>}
           {browsing && !busy && (
             <DirectoryBrowser

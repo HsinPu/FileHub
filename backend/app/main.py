@@ -6,11 +6,13 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 
 from backend.app.api.routes import accounts, auth, directories, files, operations, shares, trash
 from backend.app.core.config import PROJECT_ROOT, Settings
+from backend.app.core.diagnostics import install_diagnostics
 from backend.app.core.errors import AppError
 from backend.app.core.security import LoginLimiter
 from backend.app.db.session import open_database
@@ -91,21 +93,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         return response
 
+    install_diagnostics(app)
+
     @app.exception_handler(AppError)
     async def application_error(request, exc):
+        request.state.error_category = type(exc).__name__
         return error_response(exc.status, exc.code, exc.message)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
+        request.state.error_category = type(exc).__name__
         return error_response(422, "VALIDATION_ERROR", "輸入格式不正確，請檢查欄位長度與內容。")
 
     @app.exception_handler(Exception)
     async def unexpected_error(request, exc):
+        request.state.error_category = type(exc).__name__
         logging.getLogger(__name__).error("Request failed: %s", type(exc).__name__)
-        return error_response(500, "INTERNAL_ERROR", "伺服器暫時無法處理要求，請稍後重試。")
+        response = error_response(500, "INTERNAL_ERROR", "伺服器暫時無法處理要求，請稍後重試。")
+        if request_id := getattr(request.state, "request_id", None):
+            response.headers["X-Request-ID"] = request_id
+        return response
 
     @app.exception_handler(HTTPException)
     async def http_error(request, exc):
+        request.state.error_category = type(exc).__name__
         return error_response(
             exc.status_code,
             "HTTP_ERROR",
@@ -114,6 +125,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(OSError)
     async def filesystem_error(request, exc):
+        request.state.error_category = type(exc).__name__
         if isinstance(exc, PermissionError):
             return error_response(403, "PERMISSION_DENIED", "沒有存取此檔案或資料夾的權限。")
         if isinstance(exc, FileNotFoundError):
@@ -132,6 +144,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/health")
     def health():
+        return {"status": "ok"}
+
+    @app.get("/api/ready")
+    def ready(request: Request):
+        try:
+            with request.app.state.engine.connect() as connection:
+                connection.execute(text("SELECT 1")).scalar_one()
+            worker = request.app.state.operations
+            if not worker.thread.is_alive() or worker.stop.is_set():
+                request.state.error_category = "WorkerUnavailable"
+                return JSONResponse({"status": "unavailable"}, status_code=503)
+        except Exception as exc:
+            request.state.error_category = type(exc).__name__
+            return JSONResponse({"status": "unavailable"}, status_code=503)
         return {"status": "ok"}
 
     dist = settings.frontend_dist if settings else PROJECT_ROOT / "frontend/dist"
