@@ -5,9 +5,24 @@ React + TypeScript + Ant Design 的檔案工作空間，搭配 FastAPI 與 SQLit
 
 ## Linux 安裝與設定
 
-### 1. 啟動服務
+主機需已安裝 Git、Docker 與 Docker Compose。單純安裝測試，完成前四步即可；不需先設定 `.env` 或外部資料夾。
 
-主機已安裝 Docker 與 Compose 後，在專案目錄執行：
+### 1. 下載專案
+
+```bash
+git clone https://github.com/HsinPu/FileHub.git
+cd FileHub
+```
+
+如果已下載過，進入原本的 FileHub 專案目錄更新即可：
+
+```bash
+git pull
+```
+
+### 2. 啟動服務
+
+在專案目錄執行：
 
 ```bash
 docker compose up -d --build --wait
@@ -15,7 +30,7 @@ docker compose up -d --build --wait
 
 預設不需設定 `.env` 或掛入外部資料夾，檔案會存放在 Docker 資料卷。`--wait` 會等待服務通過健康檢查。
 
-### 2. 建立管理員帳號與密碼
+### 3. 建立管理員帳號與密碼
 
 第一次安裝執行：
 
@@ -25,11 +40,13 @@ docker compose exec filehub python -m backend.app.cli bootstrap
 
 依提示輸入管理員帳號及密碼。密碼由你自行設定，沒有預設密碼；輸入密碼時終端機不會顯示字元。已有管理員時不需重複執行。
 
-瀏覽器開啟 `http://你的Server-IP:9005`，使用剛建立的帳密登入。
+### 4. 開啟網站
 
-### 3. 設定資料夾
+瀏覽器開啟 `http://你的Server-IP:9005`，使用剛建立的帳密登入。登入後即可新增資料夾及上傳檔案，不需另外設定主機路徑。
 
-**直接使用 FileHub 儲存空間**：登入後即可新增資料夾及上傳檔案，不需另外設定主機路徑。
+若其他電腦連不到，確認 Linux 防火牆允許用戶端連入 TCP `9005`。
+
+### 5. 設定外部資料夾（選用）
 
 **使用 Linux 上既有的資料夾**：第一次先建立設定檔；已有 `.env` 時直接編輯，不要覆蓋：
 
@@ -54,7 +71,7 @@ FILEHUB_MOUNT_reports=/mnt/reports
 sh filehub.sh up -d --build --wait
 ```
 
-### 4. 登錄資料夾並分配權限
+### 6. 登錄資料夾並分配權限（需要分配目錄時）
 
 1. 到「設定 → 目錄管理 → 新增目錄」，填寫顯示名稱與相對路徑。
 2. 到「帳號管理」，將一般帳號設為「多目錄授權」，選擇目錄並設定瀏覽、下載、上傳等權限。
