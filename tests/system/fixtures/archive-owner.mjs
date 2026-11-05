@@ -1,0 +1,11 @@
+import process from 'node:process';
+import { openDatabase,parseDatabaseConfig } from '../../../apps/server/dist/index.js';
+import { EntryService } from '../../../apps/server/dist/modules/entries/service.js';
+import { OperationCatalog } from '../../../apps/server/dist/modules/operations/catalog.js';
+import { OperationExecutor } from '../../../apps/server/dist/modules/operations/executor.js';
+import { ArtifactStore } from '../../../apps/server/dist/modules/operations/artifacts.js';
+import { ArchiveHandler } from '../../../apps/server/dist/modules/operations/archives.js';
+const database=openDatabase(parseDatabaseConfig()),entries=new EntryService(database);let resume,entered=false;
+const handler=new ArchiveHandler(new ArtifactStore(database,entries),{checkpoint:async(phase,ctx)=>{if(!entered&&phase===process.env.P5_PHASE){entered=true;process.send?.({type:'checkpoint',phase,id:ctx.claim.id});await new Promise(resolve=>{resume=resolve;});}}});
+const executor=new OperationExecutor(new OperationCatalog(database),new Map([['archive',handler.handle]]),50);
+process.on('message',message=>{if(message.action==='status'){resume?.();resume=undefined;process.send?.({type:'reply',id:message.id});}else if(message.action==='stop')void(async()=>{resume?.();await executor.close();database.close();process.send?.({type:'reply',id:message.id},()=>process.disconnect());})();});process.send?.({type:'started'});

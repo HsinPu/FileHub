@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+
+engineStrict: true
+strictPeerDependencies: true
+autoInstallPeers: false
+saveExact: true
+minimumReleaseAgeStrict: true
+
+storeDir: .tools/pnpm-store
+cacheDir: .tools/pnpm-cache
+strictDepBuilds: true
+allowBuilds:
+  esbuild: true
+  rolldown: true

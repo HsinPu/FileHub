@@ -1,0 +1,89 @@
+*.md text eol=lf
+*.json text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.mjs text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sql text eol=lf
+.gitignore text eol=lf
+.node-version text eol=lf
+.env.example text eol=lf
+*.png binary
+docs/filebrowser-study/evidence/rea-evidence-bundle.json -text
+docs/filebrowser-study/evidence/build.log -text -whitespace
+docs/filebrowser-study/evidence/filebrowser-LICENSE.txt -text whitespace=cr-at-eol
+docs/filebrowser-study/evidence/Dockerfile.study.txt text eol=lf
+.gitattributes text eol=lf
+*.Dockerfile text eol=lf
+*.dockerignore text eol=lf
+docs/validation/P6.4/*.json -text
+docs/validation/P6.4/*.log -text -whitespace
+docs/validation/P6.4/SHA256SUMS text eol=lf
+docs/validation/P7.*/*.log -text -whitespace
+docs/validation/P7.*/*.json -text whitespace=cr-at-eol
+docs/validation/P7.*/SHA256SUMS text eol=lf
+docs/reviews/filebrowser-visual-reference/selected-rea-records.json -text
+docs/reviews/filebrowser-visual-reference/browser.json -text
+docs/reviews/filebrowser-visual-reference/measurements.json -text
+docs/reviews/filebrowser-visual-reference/cleanup.json -text
+docs/reviews/filebrowser-visual-reference/fixtures/* binary
+*.woff2 binary
+apps/web/public/assets/licenses/*.txt -text whitespace=cr-at-eol
+docs/validation/P8.*/*.log -text -whitespace
+docs/validation/P8.*/*.json -text whitespace=cr-at-eol
+docs/validation/P8.*/SHA256SUMS text eol=lf
+
+docs/validation/P9.*/*.log -text -whitespace
+docs/validation/P9.*/*.json -text whitespace=cr-at-eol
+docs/validation/P9.*/SHA256SUMS text eol=lf
+
+docs/design/P10/assets/*.svg text eol=lf
+docs/design/P10/preview.js text eol=lf
+docs/design/P10/evidence/*.json -text
+docs/design/P10/evidence/*.log -text
+docs/design/P10/evidence/SHA256SUMS text eol=lf
+docs/validation/P10.1/*.log -text -whitespace
+docs/validation/P10.1/*.json -text
+docs/validation/P10.1/*.txt -text
+docs/validation/P10.1/SHA256SUMS text eol=lf
+docs/validation/P10.2/*.log -text -whitespace
+docs/validation/P10.2/*.json -text whitespace=cr-at-eol
+docs/validation/P10.2/*.txt -text
+docs/validation/P10.2/SHA256SUMS text eol=lf
+docs/validation/acceptance-2026-11-01/*.log -text -whitespace
+docs/validation/acceptance-2026-11-01/*.json -text whitespace=cr-at-eol
+docs/validation/acceptance-2026-11-01/*.txt -text whitespace=cr-at-eol
+docs/validation/acceptance-2026-11-01/original-linux-dialog-error.txt -text -whitespace
+docs/validation/acceptance-2026-11-01/SHA256SUMS text eol=lf
+docs/validation/P10.3/*.log -text -whitespace
+docs/validation/P10.3/*.json -text whitespace=cr-at-eol
+docs/validation/P10.3/*.txt -text
+docs/validation/P10.3/SHA256SUMS text eol=lf
+docs/validation/P10.4/*.log -text -whitespace
+docs/validation/P10.4/*.json -text whitespace=cr-at-eol
+docs/validation/P10.4/*.txt -text
+docs/validation/P10.4/*-source.txt -text -whitespace
+docs/validation/P10.4/SHA256SUMS text eol=lf
+
+docs/validation/P10.5/*.log -text -whitespace
+docs/validation/P10.5/*.json -text whitespace=cr-at-eol
+docs/validation/P10.5/SHA256SUMS text eol=lf
+
+docs/validation/P10.6/*.log -text -whitespace
+docs/validation/P10.6/*.json -text whitespace=cr-at-eol
+docs/validation/P10.6/geometry/*.json -text whitespace=cr-at-eol
+docs/validation/P10.6/geometry/*.json.gz binary
+docs/validation/P10.6/*.txt -text -whitespace
+docs/validation/P10.6/source-specs/*.txt -text -whitespace
+docs/validation/P10.6/SHA256SUMS text eol=lf
+
+docs/validation/P10.7/*.log -text -whitespace
+docs/validation/P10.7/*.json -text whitespace=cr-at-eol
+docs/validation/P10.7/geometry/*.json.gz binary
+docs/validation/P10.7/source-specs/*.txt -text -whitespace
+docs/validation/P10.7/SHA256SUMS text eol=lf

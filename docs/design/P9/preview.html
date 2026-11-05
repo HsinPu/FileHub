@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>FileHub · P9 設計提案</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="preview.css">
+  <script src="preview.js" defer></script>
+</head>
+<body>
+  <div class="review-bar">
+    <strong>P9 設計提案</strong><span>合成資料 · 操作僅供預覽</span>
+    <label for="scene">檢視場景</label>
+    <select id="scene">
+      <option value="list">詳細列表</option><option value="mosaic">圖磚</option><option value="gallery">圖庫</option>
+      <option value="selected">已選取</option><option value="long">長檔名</option><option value="empty">空目錄</option>
+      <option value="error">讀取失敗</option><option value="partial">部分搜尋結果</option>
+      <option value="settings">個人設定</option><option value="tasks">進行中的工作</option>
+      <option value="login">登入</option><option value="public">公開分享</option>
+    </select>
+    <a id="baseline" href="../../validation/P8.9/windows-desktop-list.png" target="_blank" rel="noopener">看 P8 原圖</a>
+  </div>
+  <a class="skip" href="#main">跳至主要內容</a>
+  <header class="topbar">
+    <button class="icon-button mobile-nav" id="open-navigation" aria-label="開啟導覽"><span class="icon" aria-hidden="true">menu</span></button>
+    <a class="brand" href="?scene=list"><span class="brand-mark">F</span><strong>FileHub</strong></a>
+    <form class="search" role="search" id="search-form">
+      <span class="icon" aria-hidden="true">search</span><label class="sr-only" for="search">篩選目前目錄</label>
+      <input id="search" placeholder="搜尋目前目錄…" autocomplete="off"><button type="submit">搜尋</button>
+    </form>
+    <div class="header-actions"><button id="tasks-trigger" class="button quiet"><span class="icon" aria-hidden="true">swap_vert</span>工作<span id="task-count" class="count" hidden>2</span></button><button class="avatar" id="account" aria-label="示意帳號設定">A</button></div>
+  </header>
+  <div class="shell">
+    <aside class="sidebar" aria-label="工作空間導覽">
+      <div class="nav-group"><p class="nav-label">工作空間</p>
+        <a href="?scene=list" data-page="files" class="nav-link"><span class="icon" aria-hidden="true">folder</span>檔案</a>
+        <a href="?scene=public" class="nav-link"><span class="icon" aria-hidden="true">share</span>分享畫面示意</a>
+        <a href="?scene=settings" data-page="settings" class="nav-link"><span class="icon" aria-hidden="true">settings</span>設定</a>
+      </div>
+      <div class="nav-group"><p class="nav-label">儲存入口</p>
+        <a href="?scene=list" class="entry-link current"><span class="icon" aria-hidden="true">storage</span><span>我的檔案<small>內建儲存</small></span><span class="entry-dot" aria-hidden="true"></span></a>
+        <a href="?scene=error" class="entry-link"><span class="icon" aria-hidden="true">storage</span><span>團隊資料<small>外部資料夾</small></span></a>
+      </div>
+      <div class="sidebar-footer"><span>FileHub</span><span>P9 視覺提案</span></div>
+    </aside>
+    <main id="main" tabindex="-1"></main>
+  </div>
+  <section class="task-panel" id="task-panel" role="dialog" aria-modal="false" aria-label="工作預覽" tabindex="-1" hidden>
+    <div class="task-title"><h2>工作</h2><span class="badge">進行中 2 項</span><button id="close-tasks" class="icon-button" aria-label="收合工作"><span class="icon" aria-hidden="true">close</span></button></div>
+    <p class="secondary">收合或切換頁面不會停止工作。</p>
+    <article><div class="task-line"><strong>design.zip</strong><span>上傳中</span></div><p class="secondary">我的檔案 / 版面驗收</p><progress value="64" max="100" aria-label="design.zip 已確認進度">64%</progress><p class="task-line secondary"><span>已確認 6.4 MiB / 10 MiB</span><span>64%</span></p></article>
+    <article><div class="task-line"><strong>reports</strong><span>複製中</span></div><p class="secondary">我的檔案 → 團隊資料</p><div class="task-status"><span class="icon" aria-hidden="true">info_outline</span>等待伺服器確認結果</div></article>
+    <p class="prototype-note">以上為狀態排版示意，沒有啟動真實工作。</p>
+  </section>
+  <dialog id="preview-dialog" aria-labelledby="dialog-title"><form method="dialog"><div class="dialog-heading"><h2 id="dialog-title">上傳檔案</h2><button class="icon-button" aria-label="關閉對話框"><span class="icon" aria-hidden="true">close</span></button></div><div id="dialog-body"></div><footer><button class="button primary" value="close">關閉預覽</button></footer></form></dialog>
+  <dialog id="navigation-dialog" aria-label="工作空間導覽"><div class="dialog-heading"><strong>FileHub</strong><form method="dialog"><button class="icon-button" aria-label="關閉導覽"><span class="icon" aria-hidden="true">close</span></button></form></div><nav><a href="?scene=list">檔案</a><a href="?scene=settings">設定</a><a href="?scene=public">公開分享示意</a></nav></dialog>
+  <p id="feedback" class="feedback" role="status" hidden></p>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# 完整 backup 專用：搭配原部署的同一組 mount／env／project。
+# run --no-deps api 不會啟動正式服務；設定來源不存在時直接失敗。
+services:
+  api:
+    volumes:
+      - type: volume
+        source: backups
+        target: /data/backups
+      - type: bind
+        source: ${FILEHUB_DEPLOYMENT_CONFIG:?請指定已存在的部署設定目錄}
+        target: /deployment
+        read_only: true
+        bind:
+          create_host_path: false
+volumes:
+  backups:
+    external: true
+    name: ${FILEHUB_BACKUP_VOLUME:-filehub_backups}

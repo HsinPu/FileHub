@@ -1,0 +1,32 @@
+export { buildApp } from './app.js';
+export type { AppDependencies, AppOptions } from './app.js';
+export { ConfigError, parseConfig, parseDatabaseConfig, parseWorkerConfig } from './config/index.js';
+export type { AppConfig, DatabaseConfig, Environment, ServiceConfig, WorkerConfig } from './config/index.js';
+export type { ReadinessProbe } from './plugins/health.js';
+export { closeApp, listenApp, ShutdownTimeoutError } from './runtime.js';
+export { openDatabase } from './persistence/database.js';
+export type { FileHubDatabase, DatabaseDiagnostics } from './persistence/database.js';
+export { migrateDatabase } from './persistence/migrate.js';
+export { backupDatabase, restoreDatabaseBackup } from './persistence/backup.js';
+export { startIdleWorker, WorkerNotReadyError } from './worker/idle.js';
+export type { IdleWorker, WorkerStatus } from './worker/idle.js';
+export { IdentityService } from './modules/identity/service.js';
+export type { SessionIdentity } from './modules/identity/service.js';
+export { SCHEMA_REVISION } from './persistence/schema.js';
+export { EntryService } from './modules/entries/service.js';
+export { openScoped, inspectRoot, relativePath } from './storage/scoped.js';
+export { FileService } from './modules/files/service.js';
+export { WriteCoordinator } from './storage/coordinator.js';
+export { fileName, overlapsPath } from './storage/names.js';
+
+export { MutationService } from './modules/files/mutations.js';
+export { TrashService } from './modules/trash/service.js';
+export { recoverWrites } from './storage/recovery.js';
+export { UploadCatalog } from './modules/uploads/catalog.js';
+export { UploadService } from './modules/uploads/service.js';
+export { UploadMaintainer } from './modules/uploads/maintenance.js';
+
+export { ShareService } from './modules/shares/service.js';
+export { SettingsService } from './modules/settings/service.js';
+export { createSnapshot,restoreSnapshot,verifySnapshot } from './maintenance/snapshot.js';
+export { acquireStateLock,assertIdleOwners,STATE_LOCK_NAME,RESTORE_PENDING } from './lifecycle/state-lock.js';

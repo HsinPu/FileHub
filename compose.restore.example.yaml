@@ -1,0 +1,16 @@
+# 配合全新 project、.env.restore；先用完整維護工具建立 recovered 子目錄。
+# API、worker 與 migrate 必須使用還原時相同的 /data/backups 絕對路徑。
+services:
+  migrate:
+    volumes:
+      - recovery:/data/backups
+  api:
+    volumes:
+      - recovery:/data/backups
+  worker:
+    volumes:
+      - recovery:/data/backups
+volumes:
+  recovery:
+    external: true
+    name: ${FILEHUB_RECOVERY_VOLUME:?請指定已完成還原的全新 volume}

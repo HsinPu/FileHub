@@ -1,0 +1,26 @@
+import { Type } from 'typebox';
+import type { FastifyPluginAsync,FastifyRequest } from 'fastify';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { ApiErrorResponseSchema,AdminSnapshotSchema,PreferencesSchema,OwnPasswordSchema,AdminIdParamsSchema,AdminUserSchema,AdminUserCreateSchema,AdminUserUpdateSchema,AdminPasswordSchema,AdminEntrySchema,AdminEntryCreateSchema,AdminEntryUpdateSchema,AdminWritableSchema,AdminGrantSchema,AdminGrantRevokeSchema } from '@filehub/contracts';
+import { sessionCookie,requireCsrf,clearSessionCookie } from '../identity/routes.js';
+import type { IdentityService } from '../identity/service.js';
+import type { AppConfig } from '../../config/index.js';
+import type { SettingsService } from './service.js';
+export const settingsRoutes:FastifyPluginAsync<{settings:SettingsService;identity:IdentityService;config:AppConfig}>=async(instance,{settings,identity,config})=>{
+  const app=instance.withTypeProvider<TypeBoxTypeProvider>(),errors={400:ApiErrorResponseSchema,401:ApiErrorResponseSchema,403:ApiErrorResponseSchema,404:ApiErrorResponseSchema,409:ApiErrorResponseSchema,429:ApiErrorResponseSchema,503:ApiErrorResponseSchema};
+  app.addHook('onRequest',async request=>{identity.authenticate(sessionCookie(request));});
+  const session=(request:FastifyRequest)=>identity.authenticate(sessionCookie(request)),write=(request:FastifyRequest)=>{const current=session(request);requireCsrf(request,current.csrfToken,config);return current.user.id;},reauth=(request:FastifyRequest)=>()=>{session(request);};
+  app.get('/api/settings',{schema:{response:{200:PreferencesSchema,...errors}}},async request=>settings.getPreferences(session(request).user.id));
+  app.post('/api/settings',{schema:{body:PreferencesSchema,response:{200:PreferencesSchema,...errors}}},async request=>settings.setPreferences(write(request),request.body));
+  app.post('/api/settings/password',{bodyLimit:4096,schema:{body:OwnPasswordSchema,response:{204:Type.Null(),...errors}}},async(request,reply)=>{const user=write(request);await identity.changeOwnPassword(user,request.body.currentPassword,request.body.password,request.ip,reauth(request));return reply.header('set-cookie',clearSessionCookie(request,config)).code(204).send(null);});
+  app.get('/api/admin',{schema:{response:{200:AdminSnapshotSchema,...errors}}},async request=>settings.snapshot(session(request).user.id));
+  app.post('/api/admin/users',{bodyLimit:4096,schema:{body:AdminUserCreateSchema,response:{200:AdminUserSchema,...errors}}},async request=>settings.createUser(write(request),request.body,reauth(request)));
+  app.post('/api/admin/users/:id',{schema:{params:AdminIdParamsSchema,body:AdminUserUpdateSchema,response:{200:AdminUserSchema,...errors}}},async request=>settings.updateUser(write(request),request.params.id,request.body,reauth(request)));
+  app.post('/api/admin/users/:id/password',{bodyLimit:4096,schema:{params:AdminIdParamsSchema,body:AdminPasswordSchema,response:{204:Type.Null(),...errors}}},async(request,reply)=>{await settings.resetPassword(write(request),request.params.id,request.body.password,reauth(request));return reply.code(204).send(null);});
+  app.post('/api/admin/entries',{schema:{body:AdminEntryCreateSchema,response:{200:AdminEntrySchema,...errors}}},async request=>settings.createEntry(write(request),request.body,reauth(request)));
+  app.post('/api/admin/entries/:id',{schema:{params:AdminIdParamsSchema,body:AdminEntryUpdateSchema,response:{200:AdminEntrySchema,...errors}}},async request=>settings.updateEntry(write(request),request.params.id,request.body,reauth(request)));
+  app.post('/api/admin/entries/:id/writable',{schema:{params:AdminIdParamsSchema,body:AdminWritableSchema,response:{200:AdminEntrySchema,...errors}}},async request=>settings.setWritable(write(request),request.params.id,request.body.enabled,reauth(request)));
+  app.post('/api/admin/candidates/:id/remove',{schema:{params:AdminIdParamsSchema,response:{204:Type.Null(),...errors}}},async(request,reply)=>{settings.removeCandidate(write(request),request.params.id);return reply.code(204).send(null);});
+  app.post('/api/admin/grants',{schema:{body:AdminGrantSchema,response:{204:Type.Null(),...errors}}},async(request,reply)=>{await settings.setGrant(write(request),request.body,reauth(request));return reply.code(204).send(null);});
+  app.post('/api/admin/grants/revoke',{schema:{body:AdminGrantRevokeSchema,response:{204:Type.Null(),...errors}}},async(request,reply)=>{await settings.revokeGrant(write(request),request.body,reauth(request));return reply.code(204).send(null);});
+};

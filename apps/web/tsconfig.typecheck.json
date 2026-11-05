@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true,
+    "rootDir": "../..",
+    "paths": {
+      "@filehub/contracts": ["../../packages/contracts/src/index.ts"]
+    }
+  },
+  "references": [],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"]
+}

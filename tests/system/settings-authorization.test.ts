@@ -1,0 +1,14 @@
+import { randomUUID } from 'node:crypto';
+import { mkdir,writeFile,readFile,lstat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { expect,test } from 'vitest';
+import { IdentityService,EntryService,FileService,SettingsService } from '@filehub/server';
+import { OperationCatalog } from '../../apps/server/src/modules/operations/catalog.js';
+import { OperationService } from '../../apps/server/src/modules/operations/service.js';
+import { systemFixture } from './fixtures.js';
+test.each(['disable','grant'] as const)('管理 %s 在另一個正式 worker 開工前生效，來源保留且不發布目的地',async(action)=>{
+  const f=await systemFixture();f.migrate();const db=f.open(),identity=new IdentityService(db),admin=await identity.bootstrap('admin','Synthetic-settings-worker-password!'),member=await identity.createUser('member','Synthetic-settings-worker-password!'),entries=new EntryService(db),files=new FileService(entries),settings=new SettingsService(db,identity,entries),source=join(f.directory,'source'),target=join(f.directory,'target');await mkdir(source);await mkdir(target);await writeFile(join(source,'file'),'worker grant canary');const from=await entries.register('managed','來源',source),to=await entries.register('managed','目的地',target);await entries.grant('member',from.id,'',true);await entries.grant('member',to.id,'',true,true);
+  if(process.platform!=='linux'){if(action==='disable'){settings.updateUser(admin.id,member.id,{role:'member',enabled:false});await expect(files.metadata(member.id,from.id,'file')).rejects.toMatchObject({code:'UNAUTHORIZED'});}else{await settings.revokeGrant(admin.id,{userId:member.id,entryId:from.id,scope:''});await expect(files.metadata(member.id,from.id,'file')).rejects.toMatchObject({code:'NOT_FOUND'});}return;}
+  await entries.setWritable(to.id,true);const catalog=new OperationCatalog(db),id=randomUUID();await new OperationService(catalog,entries,files,new Set(['copy'])).create(member.id,{id,kind:'copy',sources:[{entryId:from.id,path:'file',version:(await files.metadata(member.id,from.id,'file')).resource.version}],destination:{entryId:to.id,path:'',version:(await files.metadata(member.id,to.id,'')).resource.version},conflict:'stop'});
+  if(action==='disable')settings.updateUser(admin.id,member.id,{role:'member',enabled:false});else await settings.revokeGrant(admin.id,{userId:member.id,entryId:from.id,scope:''});const child=await f.startService('worker');await child.waitForMessage(message=>message.type==='started');await expect.poll(()=>catalog.record(id).state,{timeout:8000}).toBe('failed');expect(await readFile(join(source,'file'),'utf8')).toBe('worker grant canary');await expect(lstat(join(target,'file'))).rejects.toMatchObject({code:'ENOENT'});expect((await child.request('stop')).databaseClosed).toBe(true);expect(await child.waitForExit()).toEqual({code:0,signal:null});expect(child.output()).toEqual({stdout:'',stderr:''});
+});

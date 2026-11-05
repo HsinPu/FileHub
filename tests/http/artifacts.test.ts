@@ -1,0 +1,20 @@
+import { randomUUID } from 'node:crypto';
+import { mkdir,writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { request } from 'node:http';
+import { expect,onTestFinished,test } from 'vitest';
+import { buildApp,closeApp,listenApp,parseConfig,migrateDatabase,openDatabase,IdentityService,EntryService } from '@filehub/server';
+import { FileService } from '../../apps/server/src/modules/files/service.js';
+import { OperationCatalog } from '../../apps/server/src/modules/operations/catalog.js';
+import { OperationService } from '../../apps/server/src/modules/operations/service.js';
+import { OperationExecutor } from '../../apps/server/src/modules/operations/executor.js';
+import { ArtifactStore } from '../../apps/server/src/modules/operations/artifacts.js';
+import { ArchiveHandler } from '../../apps/server/src/modules/operations/archives.js';
+import { temporaryDirectory } from './fixtures.js';
+test('真實 TCP artifact 下載中止釋放 FileHandle／admission，HEAD 與後續讀取仍可用',async()=>{
+  if(process.platform!=='linux')return;
+  const directory=await temporaryDirectory(),config=parseConfig({FILEHUB_STATE_DIR:join(directory,'state'),FILEHUB_PORT:'0',FILEHUB_LOG_LEVEL:'silent'});migrateDatabase(config);const db=openDatabase(config);onTestFinished(()=>db.close());const identity=new IdentityService(db),user=await identity.bootstrap('admin','Synthetic-archive-TCP-password-2026!'),entries=new EntryService(db),files=new FileService(entries),catalog=new OperationCatalog(db),artifacts=new ArtifactStore(db,entries,files),root=join(directory,'files');await mkdir(root);await writeFile(join(root,'large.bin'),Buffer.alloc(8*1024*1024,0x5a));const entry=await entries.register('external','來源',root),service=new OperationService(catalog,entries,files,new Set(['archive'])),input={id:randomUUID(),kind:'archive' as const,sources:[{entryId:entry.id,path:'large.bin',version:(await files.metadata(user.id,entry.id,'large.bin')).resource.version}],conflict:'stop' as const};await service.create(user.id,input);const handler=new ArchiveHandler(artifacts),executor=new OperationExecutor(catalog,new Map([['archive',handler.handle]]),50);onTestFinished(()=>executor.close());await expect.poll(()=>catalog.get(user.id,input.id).state,{timeout:10000}).toBe('succeeded');
+  const app=buildApp({config,dependencies:{identity,entries,files,artifacts,operations:service}});onTestFinished(()=>closeApp(app,2000));const url=await listenApp(app,config),login=await identity.login('admin','Synthetic-archive-TCP-password-2026!','127.0.0.1'),cookie=`filehub_session=${login.token}`,path=`${url}/api/operations/${input.id}/artifact`;
+  await new Promise<void>((resolve,reject)=>{const call=request(path,{headers:{cookie},agent:false},response=>{expect(response.statusCode).toBe(200);response.once('data',()=>{response.destroy();resolve();});response.on('error',()=>{});});call.on('error',reject);call.setTimeout(8000,()=>call.destroy(new Error('Owned TCP fixture timeout')));call.end();});await expect.poll(()=>files.activeRequests).toBe(0);
+  const head=await fetch(path,{method:'HEAD',headers:{cookie}});expect(head.status).toBe(200);expect(Number(head.headers.get('content-length'))).toBeGreaterThan(8*1024*1024);expect(files.activeRequests).toBe(0);const partial=await fetch(path,{headers:{cookie,range:'bytes=0-3'}});expect(partial.status).toBe(206);expect(Buffer.from(await partial.arrayBuffer()).equals(Buffer.from([0x50,0x4b,3,4]))).toBe(true);await expect.poll(()=>files.activeRequests).toBe(0);
+},30000);

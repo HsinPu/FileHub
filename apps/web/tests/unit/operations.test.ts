@@ -1,0 +1,42 @@
+import { afterEach,expect,test,vi } from 'vitest';
+import type { ListingResponse,OperationResponse,PublicEntry,ResourceMetadata } from '@filehub/contracts';
+import { OperationController } from '../../src/features/operations/controller.js';
+const entry:PublicEntry={id:'11111111-1111-4111-8111-111111111111',label:'測試入口',kind:'managed',readOnly:false,scopes:[{path:'',canDownload:true,canWrite:true}]};
+const resource:ResourceMetadata={name:'來源.txt',path:'來源.txt',kind:'file',size:2,modifiedAt:'2026-01-01T00:00:00.000Z',version:'a'.repeat(64),canBrowse:false,canDownload:true,canWrite:true,canCopy:true};
+const destination={entryId:entry.id,path:'目的地',version:'b'.repeat(64)};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json'}});
+const row=(id:string,state:OperationResponse['state']='queued'):OperationResponse=>({id,kind:'copy',state,cancelRequested:state==='cancelling',attempt:1,items:[{index:0,entryId:entry.id,path:resource.path,state:state==='succeeded'?'succeeded':'pending',bytesDone:0,bytesTotal:2}],createdAt:'2026-01-01T00:00:00.000Z',updatedAt:'2026-01-01T00:00:00.000Z',canRetry:false});
+const controllers:OperationController[]=[];
+function controller(expired=vi.fn(),completed=vi.fn(),storage?:Storage){const value=new OperationController('synthetic-user','private-csrf',expired,completed,storage);controllers.push(value);return value;}
+afterEach(()=>{for(const value of controllers.splice(0))value.dispose();vi.unstubAllGlobals();});
+function server(handler?:(url:string,init?:RequestInit)=>Response|Promise<Response>|undefined){const fetcher=vi.fn(async(url:RequestInfo|URL,init?:RequestInit)=>{const name=String(url),result=handler?.(name,init);if(result)return result;if(name.endsWith('/capabilities'))return json({kinds:['copy','move','archive'],maxSources:16});if(name==='/api/operations')return json({items:[]});return json({code:'NOT_FOUND',message:'找不到',requestId:'test'},404);});vi.stubGlobal('fetch',fetcher);return fetcher;}
+test('POST 回應遺失只以同一 UUID 回查，剪下接受後清空，不重送 POST',async()=>{
+  let id='';const fetcher=server((url,init)=>{if(url==='/api/operations'&&init?.method==='POST'){id=(JSON.parse(String(init.body)) as {id:string}).id;throw new Error('lost');}if(url===`/api/operations/${id}`&&id)return json({...row(id),kind:'move'});});
+  const value=controller();await value.refresh();value.capture('move',entry,'',[resource]);expect(await value.paste(destination,'','stop')).toBe('accepted');expect(value.getSnapshot().clipboard).toBeUndefined();expect(value.getSnapshot().jobs[0]?.id).toBe(id);expect(fetcher.mock.calls.filter(([,init])=>init?.method==='POST')).toHaveLength(1);
+});
+test('未知結果只保存 UUID，重新載入回查後恢復；不保存路徑、Cookie 或 CSRF',async()=>{
+  const map=new Map<string,string>(),storage={getItem:(key:string)=>map.get(key)??null,setItem:(key:string,data:string)=>{map.set(key,data);},removeItem:(key:string)=>{map.delete(key);}} as Storage;
+  let id='',available=false;const fetcher=server((url,init)=>{if(init?.method==='POST'){id=(JSON.parse(String(init.body)) as {id:string}).id;throw new Error('offline');}if(url===`/api/operations/${id}`&&available)return json(row(id,'succeeded'));});
+  const first=controller(vi.fn(),vi.fn(),storage);await first.refresh();first.capture('copy',entry,'',[resource]);expect(await first.paste(destination,'','stop')).toBe('unknown');first.dispose();expect([...map.values()]).toEqual([JSON.stringify([id])]);expect([...map.values()].join()).not.toMatch(/來源|private-csrf|目的地/);
+  available=true;const restored=controller(vi.fn(),vi.fn(),storage);await restored.refresh();expect(restored.getSnapshot().jobs[0]?.state).toBe('succeeded');expect(restored.getSnapshot().unknown).toEqual([]);expect(fetcher.mock.calls.filter(([,init])=>init?.method==='POST')).toHaveLength(1);
+});
+test('跨頁剪貼簿保留，來源版本或授權改變時清除；不接受第 17 項',async()=>{
+  server();const value=controller();await value.refresh();value.capture('copy',entry,'',[resource]);const listing:ListingResponse={entryId:entry.id,path:'其他目錄',scope:'',version:'c'.repeat(64),items:[],total:0,offset:0,limit:50,hasMore:false,omitted:0};value.validateListing(entry.id,listing,true);expect(value.getSnapshot().clipboard).toBeDefined();
+  value.validateListing(entry.id,{...listing,path:'',items:[{...resource,version:'d'.repeat(64)}]},true);expect(value.getSnapshot().clipboard).toBeUndefined();value.capture('move',entry,'',[resource]);value.validateEntries([{...entry,scopes:[{path:'',canDownload:true},{path:resource.path,canDownload:false,canWrite:true}]}]);expect(value.getSnapshot().clipboard).toBeDefined();value.validateEntries([{...entry,scopes:[{path:'',canDownload:true}]}]);expect(value.getSnapshot().clipboard).toBeUndefined();value.capture('copy',entry,'',Array.from({length:17},()=>resource));expect(value.getSnapshot().clipboard).toBeUndefined();
+});
+test('401 清除工作與剪貼簿；晚到的 GET 不可重新填回保護內容',async()=>{
+  let unauth=false,release:(value:Response)=>void=()=>{};server((url)=>{if(unauth&&url.endsWith('/capabilities'))return json({code:'UNAUTHORIZED',message:'未登入',requestId:'test'},401);if(unauth&&url==='/api/operations')return new Promise(resolve=>{release=resolve;});});const expired=vi.fn(),value=controller(expired);await value.refresh();value.capture('copy',entry,'',[resource]);unauth=true;const pending=value.refresh();await vi.waitFor(()=>expect(expired).toHaveBeenCalledOnce());release(json({items:[row('22222222-2222-4222-8222-222222222222')]}));await pending;expect(value.getSnapshot()).toMatchObject({jobs:[],clipboard:undefined,capabilities:undefined});
+});
+test('取消後較舊的回查不能倒退為 running；斷線保留狀態，重連清除讀取錯誤',async()=>{
+  const id='22222222-2222-4222-8222-222222222222';let state:OperationResponse['state']='running',offline=false;server((url,init)=>{if(offline)throw new Error('offline');if(url.endsWith('/cancel')&&init?.method==='POST'){state='cancelling';return json(row(id,state));}if(url==='/api/operations')return json({items:[row(id,state==='cancelling'?'running':state)]});});const value=controller();await value.refresh();await value.action(id,'cancel');await value.refresh();expect(value.getSnapshot().jobs[0]?.state).toBe('cancelling');offline=true;await value.refresh();expect(value.getSnapshot().jobs[0]?.state).toBe('cancelling');expect(value.getSnapshot().error).toBeDefined();offline=false;state='cancelled';await value.refresh();expect(value.getSnapshot().error).toBeUndefined();expect(value.getSnapshot().jobs[0]?.state).toBe('cancelled');
+});
+test('已完成回呼僅觸發一次，單份回查使用公開 ID route',async()=>{
+  const id='22222222-2222-4222-8222-222222222222',completed=vi.fn();let state:OperationResponse['state']='running';const fetcher=server(url=>url==='/api/operations'?json({items:[row(id,state)]}):url===`/api/operations/${id}`?json(row(id,state)):undefined);const value=controller(vi.fn(),completed);await value.refresh();state='succeeded';await value.recheck(id);await value.recheck(id);expect(completed).toHaveBeenCalledOnce();expect(fetcher.mock.calls.some(([url])=>url===`/api/operations/${id}`)).toBe(true);
+});
+test('安全 retry 回應遺失後，同 attempt 的 queued 可回查恢復；不重新 POST',async()=>{
+  const id='22222222-2222-4222-8222-222222222222';let state:OperationResponse['state']='interrupted';const fetcher=server((url,init)=>{if(url.endsWith('/retry')&&init?.method==='POST'){state='queued';throw new Error('lost');}if(url==='/api/operations')return json({items:[{...row(id,state),attempt:2,canRetry:state==='interrupted'}]});});const value=controller();await value.refresh();await value.action(id,'retry');await value.refresh();expect(value.getSnapshot().jobs[0]).toMatchObject({state:'queued',attempt:2,canRetry:false});expect(fetcher.mock.calls.filter(([,init])=>init?.method==='POST')).toHaveLength(1);
+});
+test('超過畫面上限的已確認歷史不反覆冒充未知結果或重複回查',async()=>{
+  const id='22222222-2222-4222-8222-222222222222',storage={getItem:()=>JSON.stringify([id]),setItem:vi.fn(),removeItem:vi.fn()} as unknown as Storage;
+  const fetcher=server(url=>url==='/api/operations'?json({items:Array.from({length:50},(_,index)=>({...row(`33333333-3333-4333-8333-${String(index).padStart(12,'0')}`,'succeeded'),createdAt:'2026-02-01T00:00:00.000Z',updatedAt:'2026-02-01T00:00:00.000Z'}))}):url===`/api/operations/${id}`?json(row(id,'succeeded')):undefined);const value=controller(vi.fn(),vi.fn(),storage);await value.refresh();await value.refresh();await value.refresh();expect(value.getSnapshot().jobs).toHaveLength(50);expect(value.getSnapshot().unknown).toEqual([]);expect(fetcher.mock.calls.filter(([url])=>url===`/api/operations/${id}`)).toHaveLength(1);
+});

@@ -1,0 +1,18 @@
+# Linux 主機需先建立目錄並準備 UID/GID 1000 的權限；兩服務路徑與模式必須相同。
+services:
+  api:
+    volumes:
+      - type: bind
+        source: ${FILEHUB_EXTERNAL_SOURCE:?請指定已存在的 Linux 絕對路徑}
+        target: /mounts/example
+        read_only: ${FILEHUB_EXTERNAL_READ_ONLY:-true}
+        bind:
+          create_host_path: false
+  worker:
+    volumes:
+      - type: bind
+        source: ${FILEHUB_EXTERNAL_SOURCE:?請指定已存在的 Linux 絕對路徑}
+        target: /mounts/example
+        read_only: ${FILEHUB_EXTERNAL_READ_ONLY:-true}
+        bind:
+          create_host_path: false

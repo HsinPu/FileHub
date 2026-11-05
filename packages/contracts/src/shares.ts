@@ -1,0 +1,18 @@
+import { Type,type Static } from 'typebox';
+import { RelativePathSchema } from './entries.js';
+import { ResourceVersionSchema } from './files.js';
+export const SHARE_LIMITS=Object.freeze({maxLifetimeMs:30*86400000,sessionMs:3600000,ownerActive:100,history:10000,sessions:2048,shareSessions:32});
+export const ShareSecretSchema=Type.String({pattern:'^[A-Za-z0-9_-]{43}$'});
+export const ShareParamsSchema=Type.Object({id:Type.String({format:'uuid'})},{additionalProperties:false});
+export const ShareCreateSchema=Type.Object({id:Type.String({format:'uuid'}),entryId:Type.String({format:'uuid'}),path:RelativePathSchema,version:ResourceVersionSchema,secret:ShareSecretSchema,password:Type.Optional(Type.String({minLength:15,maxLength:128})),expiresAt:Type.String({format:'date-time'})},{additionalProperties:false});
+export const ShareSchema=Type.Object({id:Type.String({format:'uuid'}),entryId:Type.String({format:'uuid'}),path:RelativePathSchema,name:Type.String({maxLength:255}),kind:Type.Union([Type.Literal('file'),Type.Literal('directory')]),passwordProtected:Type.Boolean(),revoked:Type.Boolean(),createdAt:Type.String({format:'date-time'}),expiresAt:Type.String({format:'date-time'})},{additionalProperties:false});
+export const ShareListSchema=Type.Object({items:Type.Array(ShareSchema,{maxItems:100})},{additionalProperties:false});
+export const ShareAccessSchema=Type.Object({password:Type.Optional(Type.String({maxLength:128}))},{additionalProperties:false});
+export const PublicShareChallengeSchema=Type.Object({passwordProtected:Type.Boolean(),expiresAt:Type.String({format:'date-time'})},{additionalProperties:false});
+export const PublicShareInfoSchema=Type.Object({name:Type.String({maxLength:255}),kind:Type.Union([Type.Literal('file'),Type.Literal('directory')]),passwordProtected:Type.Boolean(),expiresAt:Type.String({format:'date-time'})},{additionalProperties:false});
+export const PublicShareResourceSchema=Type.Object({name:Type.String({maxLength:255}),path:RelativePathSchema,kind:Type.Union([Type.Literal('file'),Type.Literal('directory')]),size:Type.Union([Type.Integer({minimum:0,maximum:Number.MAX_SAFE_INTEGER}),Type.Null()]),modifiedAt:Type.String({format:'date-time'}),version:ResourceVersionSchema,canBrowse:Type.Boolean(),canDownload:Type.Boolean()},{additionalProperties:false});
+export const PublicShareListingSchema=Type.Object({path:RelativePathSchema,version:ResourceVersionSchema,items:Type.Array(PublicShareResourceSchema,{maxItems:100}),total:Type.Integer({minimum:0,maximum:5000}),offset:Type.Integer({minimum:0}),limit:Type.Integer({minimum:1,maximum:100}),hasMore:Type.Boolean(),omitted:Type.Integer({minimum:0})},{additionalProperties:false});
+export type ShareCreate=Static<typeof ShareCreateSchema>;
+export type Share=Static<typeof ShareSchema>;
+export type PublicShareInfo=Static<typeof PublicShareInfoSchema>;
+export type PublicShareResource=Static<typeof PublicShareResourceSchema>;

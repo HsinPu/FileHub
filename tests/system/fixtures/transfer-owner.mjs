@@ -1,0 +1,12 @@
+import process from 'node:process';
+import { openDatabase,parseDatabaseConfig } from '../../../apps/server/dist/index.js';
+import { EntryService } from '../../../apps/server/dist/modules/entries/service.js';
+import { MutationService } from '../../../apps/server/dist/modules/files/mutations.js';
+import { OperationCatalog } from '../../../apps/server/dist/modules/operations/catalog.js';
+import { OperationExecutor } from '../../../apps/server/dist/modules/operations/executor.js';
+import { TransferHandler } from '../../../apps/server/dist/modules/operations/transfers.js';
+const database=openDatabase(parseDatabaseConfig()),entries=new EntryService(database);let resume;
+const handler=new TransferHandler(entries,new MutationService(database,entries),{checkpoint:async(phase,ctx,index)=>{if(phase===process.env.P5_PHASE){process.send?.({type:'checkpoint',phase,id:ctx.claim.id,index});await new Promise(resolve=>{resume=resolve;});}}});
+const executor=new OperationExecutor(new OperationCatalog(database),new Map([['copy',handler.handle],['move',handler.handle]]),50);
+process.on('message',message=>{if(message.action==='status'){resume?.();resume=undefined;process.send?.({type:'reply',id:message.id});}else if(message.action==='stop')void(async()=>{resume?.();await executor.close();await handler.close();database.close();process.send?.({type:'reply',id:message.id},()=>process.disconnect());})();});
+process.send?.({type:'started'});

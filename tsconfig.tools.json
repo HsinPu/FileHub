@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmit": true,
+    "paths": {
+      "@filehub/contracts": ["./packages/contracts/src/index.ts"],
+      "@filehub/server": ["./apps/server/src/index.ts"]
+    }
+  },
+  "include": ["vitest.config.ts", "playwright.config.ts", "apps/web/vite.config.ts", "tests/**/*.ts"]
+}

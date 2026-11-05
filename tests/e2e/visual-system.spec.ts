@@ -1,0 +1,87 @@
+import { readFile } from 'node:fs/promises';
+import { expectReadable } from './visual-contrast.js';
+import { test, expect } from './fixtures.js';
+import { login, openSettings, selectFile, fileAction } from './actions.js';
+
+test('本機字體與圖示完整載入，登入／66 項工作區／設定及 portal 使用一致主題', async ({ page, filehub, workspaceData }, info) => {
+  const external: string[] = [], errors: string[] = [], fonts = new Map<string, number>();
+  page.on('request', request => { if (new URL(request.url()).origin !== filehub.url) external.push(new URL(request.url()).origin); });
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => { if (new URL(response.url()).pathname.endsWith('.woff2')) fonts.set(response.url(), response.status()); });
+  const path = await workspaceData.prepareLayout();
+  await page.goto(`/?entry=${workspaceData.managed}&path=${encodeURIComponent(path)}`);
+  await expect(page.getByRole('heading', { name: '登入 FileHub', exact: true })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator('.filehub-root')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('.login-panel')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expectReadable(page.getByLabel('帳號', { exact: true }), 'borderTopColor', 3);
+  await page.getByLabel('帳號', { exact: true }).focus();
+  await expect(page.getByLabel('帳號', { exact: true })).toHaveCSS('outline-color', 'rgb(36, 94, 168)');
+  await expect(page.getByLabel('帳號', { exact: true })).toHaveCSS('outline-width', '2px');
+  await page.keyboard.press('Tab');
+  const password = page.getByLabel('密碼', { exact: true }), passwordControl = page.locator('.login-panel .ant-input-affix-wrapper');
+  await expect(password).toBeFocused(); await expect(password).toHaveCSS('outline-style', 'none');
+  await expect(passwordControl).toHaveCSS('outline-color', 'rgb(36, 94, 168)'); await expect(passwordControl).toHaveCSS('outline-width', '2px'); await expect(passwordControl).toHaveCSS('box-shadow', 'none');
+  await expect(passwordControl).toHaveCSS('outline-offset', '-2px');
+  await expectReadable(passwordControl, 'outlineColor', 3);
+  await page.screenshot({ path: info.outputPath('login-password-focus.png'), fullPage: true, animations: 'disabled' });
+  await page.keyboard.press('Tab');await page.getByRole('button',{name:'登入',exact:true}).focus();
+  await expect(page.getByRole('button',{name:'登入',exact:true})).toHaveCSS('outline-color','rgb(36, 94, 168)');await expect(page.getByRole('button',{name:'登入',exact:true})).toHaveCSS('outline-width','2px');
+  await expectReadable(page.getByRole('button', { name: '登入', exact: true }));
+  await page.screenshot({ path: info.outputPath('login.png'), fullPage: true, animations: 'disabled' });
+  await login(page);
+  await expect(page.getByText('66 個項目', { exact: true })).toBeVisible();
+  // Load every shipped weight, not just a CSS declaration that could silently fall back.
+  await page.evaluate(async () => {
+    for (const weight of [400, 500, 700]) await document.fonts.load(`${weight} 16px Roboto`, 'FileHub 0123');
+    await document.fonts.load('24px "Material Icons"', 'search');
+    await document.fonts.ready;
+  });
+  const loaded = await page.evaluate(() => Array.from(document.fonts).filter(font => /Roboto|Material Icons/.test(font.family)).map(font => ({ family: font.family, weight: font.weight, status: font.status })));
+  expect(loaded).toHaveLength(4); expect(loaded.every(font => font.status === 'loaded')).toBe(true);
+  expect(fonts.size).toBe(4); expect([...fonts.values()]).toEqual([200, 200, 200, 200]);
+  const rootFont = await page.locator('.filehub-root').evaluate(element => getComputedStyle(element).fontFamily);
+  expect(rootFont).toContain('Roboto'); await expect(page.locator('.filehub-root')).toHaveCSS('font-size', '14px');
+  await expect(page.locator('.file-table th').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.getByRole('button', { name: '搜尋檔案', exact: true })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  if ((page.viewportSize()?.width ?? 0) > 736) await expect(page.locator('.files-shell > .sidebar')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  // 側欄改白仍須保留真實唯讀能力與停用外觀，不能共用 sidebar 色票。
+  const upload = await fileAction(page, '上傳');
+  await expect(upload).toBeDisabled(); await expect(upload).toHaveCSS('background-color', 'rgb(240, 242, 245)');
+  await expectReadable(upload);
+  const firstRow = page.locator('tr[data-row-key]').first(); await firstRow.hover();
+  await expect(firstRow.locator('td').first()).toHaveCSS('background-color', 'rgb(247, 249, 252)');
+  await page.mouse.move(0, 0);
+  await page.screenshot({ path: info.outputPath('workspace.png'), animations: 'disabled' });
+  await selectFile(page,'design');
+  await page.locator('tr.file-selected').hover();
+  await expect(page.locator('tr.file-selected td').first()).toHaveCSS('background-color', 'rgb(234, 241, 251)');
+  await expectReadable(page.locator('tr.file-selected .folder-link'));
+  await page.getByRole('button', { name: '分享所選項目', exact: true }).click();
+  const modal = page.getByRole('dialog', { name: '建立公開分享', exact: true });
+  await expect(modal).toBeVisible(); await expect(modal).toHaveCSS('font-family', rootFont);
+  expect(await modal.evaluate(element => getComputedStyle(element).getPropertyValue('--fh-primary').trim())).toBe('#245ea8');
+  await expect(modal).not.toHaveClass(/ant-zoom-(appear|enter)/);
+  await expect(modal.locator('.ant-modal-container')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expectReadable(modal.getByRole('button', { name: '建立分享', exact: true }));
+  await page.screenshot({ path: info.outputPath('portal.png'), animations: 'disabled' });
+  await modal.getByRole('button', { name: '關閉', exact: true }).last().click(); await expect(modal).toHaveCount(0);
+  await openSettings(page);
+  await page.getByLabel('預設檢視', { exact: true }).selectOption('thumbnails');
+  await page.getByLabel('每頁筆數', { exact: true }).selectOption('25');
+  await expectReadable(page.getByLabel('預設檢視', { exact: true }));
+  await expectReadable(page.getByLabel('預設檢視', { exact: true }), 'borderTopColor', 3);
+  await page.getByRole('button', { name: '儲存偏好', exact: true }).click();
+  await expect(page.getByText('設定已儲存。', { exact: true })).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: info.outputPath('settings.png'), fullPage: true, animations: 'disabled' });
+  const metadata = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as { version: string };
+  const notice = await page.request.get(`/assets/licenses/NOTICE-${metadata.version}.txt`);
+  expect(notice.status()).toBe(200); expect(await notice.text()).toContain('Copyright 2018 Google, Inc.');
+  for (const name of ['filebrowser', 'roboto', 'material-icons']) {
+    const license = await page.request.get(`/assets/licenses/${name}-Apache-2.0.txt`);
+    expect(license.status()).toBe(200); expect(await license.text()).toContain('TERMS AND CONDITIONS');
+  }
+  expect(external).toEqual([]); expect(errors).toEqual([]);
+  console.info(JSON.stringify({ viewport: page.viewportSize(), fonts: loaded, localFontRequests: fonts.size }));
+});

@@ -1,0 +1,38 @@
+{
+  "name": "@filehub/server",
+  "version": "0.40.18",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "@fastify/static": "10.1.7",
+    "@fastify/type-provider-typebox": "6.3.0",
+    "@filehub/contracts": "workspace:*",
+    "ajv-formats": "3.0.1",
+    "better-sqlite3": "13.0.3",
+    "drizzle-orm": "0.45.4",
+    "fastify": "5.12.7",
+    "sharp": "0.35.5",
+    "typebox": "1.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "9.6.0",
+    "drizzle-kit": "0.31.11"
+  },
+  "files": [
+    "dist",
+    "drizzle",
+    "native/filehub-fs",
+    "native/preview-image.mjs",
+    "native/operation-io.mjs",
+    "native/archive-io.mjs"
+  ]
+}

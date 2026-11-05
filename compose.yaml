@@ -1,0 +1,86 @@
+name: filehub
+
+x-common: &common
+  image: ${FILEHUB_IMAGE:-filehub:0.40.18}
+  platform: linux/amd64
+  pull_policy: never
+  user: "1000:1000"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 128
+  mem_limit: 512m
+  cpus: 1
+  stop_signal: SIGTERM
+  stop_grace_period: 20s
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+    - /run/filehub:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=1000,gid=1000
+
+x-environment: &environment
+  FILEHUB_STATE_DIR: ${FILEHUB_STATE_DIR:-/data/state}
+  FILEHUB_SQLITE_BUSY_TIMEOUT_MS: ${FILEHUB_SQLITE_BUSY_TIMEOUT_MS:-100}
+  FILEHUB_LOG_LEVEL: ${FILEHUB_LOG_LEVEL:-info}
+  FILEHUB_SHUTDOWN_TIMEOUT_MS: ${FILEHUB_SHUTDOWN_TIMEOUT_MS:-5000}
+  FILEHUB_PUBLIC_ORIGIN: ${FILEHUB_PUBLIC_ORIGIN:-http://127.0.0.1:8080}
+
+x-runtime: &runtime
+  <<: *common
+  restart: unless-stopped
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+  volumes:
+    - state:/data/state
+    - files:/data/files
+    - cache:/data/cache
+
+services:
+  migrate:
+    <<: *common
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: [apps/server/dist/migrate.js]
+    environment: *environment
+    restart: "no"
+    volumes:
+      - state:/data/state
+  api:
+    <<: *runtime
+    command: [apps/server/dist/server.js]
+    environment:
+      <<: *environment
+      FILEHUB_HOST: 0.0.0.0
+      FILEHUB_PORT: 3000
+      FILEHUB_READINESS_TIMEOUT_MS: ${FILEHUB_READINESS_TIMEOUT_MS:-1000}
+    ports:
+      - "${FILEHUB_BIND_ADDRESS:-127.0.0.1}:${FILEHUB_HTTP_PORT:-8080}:3000"
+    healthcheck:
+      test: [CMD, node, apps/server/dist/healthcheck.js, api]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 3s
+  worker:
+    <<: *runtime
+    command: [apps/server/dist/worker.js]
+    environment:
+      <<: *environment
+      FILEHUB_WORKER_POLL_INTERVAL_MS: ${FILEHUB_WORKER_POLL_INTERVAL_MS:-1000}
+      FILEHUB_UPLOAD_MAINTENANCE_INTERVAL_MS: ${FILEHUB_UPLOAD_MAINTENANCE_INTERVAL_MS:-60000}
+      FILEHUB_WORKER_HEARTBEAT_FILE: /run/filehub/worker.json
+    healthcheck:
+      test: [CMD, node, apps/server/dist/healthcheck.js, worker]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 3s
+
+volumes:
+  state:
+    driver: local
+  files:
+    driver: local
+  cache:
+    driver: local
