@@ -18,9 +18,11 @@
 
 `.gitignore` 不會移除舊 commit 中的檔案。2026-11-05 整理前，本機 `main` 比 `origin/main` 多 91 個 commit，內含驗證產物；該遠端追蹤點為 `26d4bd6` 的空目錄版本。
 
-完整開發歷史與後續整理提交保留於本機 `main`。另以 `origin/main` 為父節點建立 `codex/publish-clean`，只包含整理後的原始碼快照，避免把舊驗證產物帶進新的可達歷史。發佈後的程式開發接續乾淨分支，不把原開發歷史 merge 回來。
+先以當時的 `origin/main` 為父節點建立 `codex/publish-clean`，只包含整理後的原始碼快照，避免把舊驗證產物帶進新的可達歷史。使用者隨後明確授權最後修正與乾淨內容一併上 `main`；後續開發及發佈以乾淨的 `main` 為主線。
 
-本次不 push。遠端讀取因目前 Git 認證不可用而未刷新，以上父節點是本機追蹤紀錄；未來推送前須先成功 fetch、確認遠端分支與發佈範圍，再以乾淨分支發佈。**不要直接推送保留完整歷史的 `main`，也不要推送所有 refs 或 tags。** 若遠端已變更，先重新核對，不使用 force push。
+原完整開發歷史及整理提交 `2777ef5` 保留於本機 `codex/development-history-2026-11-05`；不推送此備份分支，也不將它 merge 回 `main`。`codex/publish-clean` 保留乾淨快照的本機分支定位。
+
+2026-11-05 本次發佈前已透過 GitHub 連線及成功的 Git fetch，核對遠端 `main` 為 `26d4bd6`，可正常 fast-forward 推送。只推送使用者核准的 `main`，不推送所有 refs 或 tags，不使用 force push。後續每次推送仍須先刷新遠端與檢查新增可達歷史；未明確授權時只做本機 commit。
 
 ## 提交前檢查
 

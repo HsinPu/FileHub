@@ -14,7 +14,7 @@ P9 已完成[設計研究](docs/reviews/p9-design-review.md)與[獨立預覽](do
 
 ## 1. 開始前先確認範圍
 
-原始碼發佈範圍依[發佈規則](docs/operations/source-publication.md)：保留測試程式及必要 fixture，截圖、log、報告等產物只留本機。CI 執行測試並保留工作日誌，但不另上傳測試附件。既有完整開發歷史保留本機 `main`；後續開發由 `codex/publish-clean` 接續，推送前核對遠端及新增可達歷史。
+原始碼發佈範圍依[發佈規則](docs/operations/source-publication.md)：保留測試程式及必要 fixture，截圖、log、報告等產物只留本機。CI 執行測試並保留工作日誌，但不另上傳測試附件。後續開發與發佈使用乾淨的 `main`；原完整開發歷史保留本機 `codex/development-history-2026-11-05`，不可推送或 merge 回主線。推送前核對遠端及新增可達歷史，只有使用者明確要求才 push。
 
 閱讀 [AGENTS.md](AGENTS.md)、[MEMORY.md](MEMORY.md)、[README.md](README.md)、[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) 與 [ARCHITECTURE.md](ARCHITECTURE.md)。依主計畫選下一個未完成工作編號，閱讀其指定文件與原碼，再將狀態更新為進行中。涉及介面時另讀 [DESIGN.md](DESIGN.md)；產品行為與階段概覽參考 [改寫藍圖](docs/filebrowser-study/07-filehub-rewrite-blueprint.md)。
 

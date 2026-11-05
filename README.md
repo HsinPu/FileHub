@@ -96,7 +96,7 @@ Linux 首次安裝瀏覽器改用 `node scripts/playwright.mjs install --with-de
 
 原生啟動先 `pnpm build`、`pnpm db:migrate`、`pnpm admin bootstrap admin`，再分別執行 `pnpm start:api` 與 `pnpm start:worker`。兩程序須使用同一個本機 state。原生預設網址為 [http://127.0.0.1:3000/](http://127.0.0.1:3000/)；前端開發可用 `pnpm dev:web`，同源設定見[開發流程](CONTRIBUTING.md)。
 
-測試原始碼及必要 fixture 保留在 `tests/`、`apps/server/tests/`、`apps/web/tests/`。截圖、log、驗證報告、資料庫、建置產物與私人設定不納入原始碼發佈；範圍及本機歷史保留方式見[原始碼發佈規則](docs/operations/source-publication.md)。
+後續開發與發佈使用 `main`。測試原始碼及必要 fixture 保留在 `tests/`、`apps/server/tests/`、`apps/web/tests/`。截圖、log、驗證報告、資料庫、建置產物與私人設定不納入原始碼發佈；範圍及本機歷史保留方式見[原始碼發佈規則](docs/operations/source-publication.md)。
 
 ## 操作與設計文件
 

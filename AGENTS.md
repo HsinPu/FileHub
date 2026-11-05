@@ -19,7 +19,7 @@ P0–P9 共 62 份工作已完成；目前程式版本 `0.40.18`／schema 13，P
 ## 工作範圍
 
 - 原始碼發佈依 [source-publication](docs/operations/source-publication.md)：保留三處測試原始碼與必要 fixture，排除本機工具、秘密、資料庫、建置產物、階段驗證報告及原始擷取；停止追蹤不刪本機 bytes。第三方授權與產品／設計原始資產保留。
-- 2026-11-05 發佈整理以 `codex/publish-clean` 為乾淨歷史分支；原本含產物的完整開發歷史保留本機 `main`，不可直接 push 或 merge 回發佈分支。推送前先成功刷新遠端並檢查新增可達歷史，不自動 push。
+- 2026-11-05 使用者授權將乾淨快照與最後修正發佈至 `main`；後續以 `main` 開發與發佈。原本含產物的完整開發歷史保留本機 `codex/development-history-2026-11-05`，不可 push 或 merge 回 `main`。推送前先刷新遠端並檢查新增可達歷史；只有使用者明確要求時才 push。
 - 回答、文件與產品文案使用繁體中文（台灣用語）。
 - 每次任務先閱讀本檔、`MEMORY.md`、`README.md`；實作前另讀 `IMPLEMENTATION_PLAN.md`、`ARCHITECTURE.md` 與 `CONTRIBUTING.md`，涉及介面時另讀 `DESIGN.md`。
 - 參考來源為 `C:\Users\win10\Desktop\Github\filebrowser`；分析時保持來源不變，驗證使用指定 commit 的隔離副本。

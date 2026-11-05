@@ -4,7 +4,7 @@
 
 ## 原始碼發佈與測試產物
 
-- 2026-11-05 使用者定案保留測試原始碼，只排除截圖、log、驗證報告等產物。`tests/`、`apps/server/tests/`、`apps/web/tests/` 及必要 fixture 保留；不要用圖片／文件副檔名刪除必要測試資料、Logo、字型或授權。`.gitignore` 不能清掉舊 commit；完整歷史留本機 `main`，乾淨發佈以 `codex/publish-clean` 接續，不混回原歷史。移除索引前保存精確清單及 hash，保持本機 bytes 不變；遠端認證未成功刷新時不能宣稱遠端目前內容已核對。規則見 [source-publication](docs/operations/source-publication.md)。
+- 2026-11-05 使用者定案保留測試原始碼，只排除截圖、log、驗證報告等產物，並明確授權最後修正與乾淨快照一併上 `main`。`tests/`、`apps/server/tests/`、`apps/web/tests/` 及必要 fixture 保留；不要用圖片／文件副檔名刪除必要測試資料、Logo、字型或授權。`.gitignore` 不能清掉舊 commit；原開發歷史留本機 `codex/development-history-2026-11-05`，乾淨快照由 `main` 接續，不混回原歷史。移除索引前保存精確清單及 hash，保持本機 bytes 不變；遠端未成功刷新時不能宣稱目前內容已核對。規則見 [source-publication](docs/operations/source-publication.md)。
 
 ## 全畫面對齊檢查
 
