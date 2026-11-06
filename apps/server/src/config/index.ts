@@ -98,14 +98,18 @@ export function parseWorkerConfig(environment: Environment = process.env): Worke
 export function parseConfig(environment: Environment = process.env): AppConfig {
   const host = text(environment, 'FILEHUB_HOST', '127.0.0.1');
   if (isIP(host) === 0) throw new ConfigError('FILEHUB_HOST', '必須是 IPv4 或 IPv6 位址。');
+  const allowLanHttp = text(environment, 'FILEHUB_ALLOW_LAN_HTTP', 'false');
+  if (allowLanHttp !== 'true' && allowLanHttp !== 'false') throw new ConfigError('FILEHUB_ALLOW_LAN_HTTP', '必須是 true 或 false。');
   let publicOrigin: string | undefined;
   if (environment.FILEHUB_PUBLIC_ORIGIN !== undefined) {
     const value = text(environment, 'FILEHUB_PUBLIC_ORIGIN', '');
     try {
       const url = new URL(value);
-      if (url.origin !== value || url.username || url.password || (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)))) throw new Error();
+      const loopback = ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
+      const allowedHttp = url.protocol === 'http:' && (loopback || allowLanHttp === 'true');
+      if (url.origin !== value || url.username || url.password || (url.protocol !== 'https:' && !allowedHttp)) throw new Error();
       publicOrigin = url.origin;
-    } catch { throw new ConfigError('FILEHUB_PUBLIC_ORIGIN', '必須是無路徑的 HTTPS origin；本機 loopback 可用 HTTP。'); }
+    } catch { throw new ConfigError('FILEHUB_PUBLIC_ORIGIN', '必須是無路徑的 HTTPS 來源。HTTP 可用於本機或明確啟用的內網部署。'); }
   }
   return Object.freeze({
     ...parseServiceConfig(environment),

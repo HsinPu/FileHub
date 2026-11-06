@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { LogController, type FastifyInstance } from 'fastify';
+import { fileHubMountPrefix } from '@filehub/contracts';
 import type { AppConfig } from './config/index.js';
 import { installErrorHandlers } from './plugins/errors.js';
 import { healthRoutes, type ReadinessProbe } from './plugins/health.js';
@@ -62,6 +63,10 @@ export function buildApp({ config, dependencies = {}, webRoot }: AppOptions): Fa
   if(dependencies.shares&&!dependencies.identity)throw new Error('Share owner routes require identity');
   if(dependencies.settings&&!dependencies.identity)throw new Error('Settings routes require identity');
   const app = Fastify({
+    rewriteUrl: request => {
+      const url = request.url ?? '';
+      return url.slice(fileHubMountPrefix(url).length);
+    },
     ajv:{customOptions:{removeAdditional:false}},
     logger: config.logLevel === 'silent' ? false : {
       level: config.logLevel,

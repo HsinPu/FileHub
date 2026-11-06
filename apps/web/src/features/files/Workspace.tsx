@@ -4,6 +4,7 @@ import { Alert, Button, Pagination, Spin } from 'antd';
 import { PreferencesSchema, EntriesResponseSchema, ListingResponseSchema, MetadataResponseSchema, type Preferences, type PublicEntry, type ResourceMetadata, type SessionResponse } from '@filehub/contracts';
 import { ApiClientError } from '../../lib/api.js';
 import { api, errorText } from '../../lib/client.js';
+import { appHref } from '../../lib/paths.js';
 import { useResource } from '../../lib/useResource.js';
 import { href, useLocation, type Location } from './navigation.js';
 
@@ -114,7 +115,7 @@ function FilePanel({ preferredView,pageSize,entry, location, navigate, onExpired
     const params = new URLSearchParams({ path: resource.path, version: resource.version });
     void api(`/api/entries/${entry.id}/metadata?${params.toString()}`, MetadataResponseSchema, { signal: controller.signal }).then(() => {
       if (controller.signal.aborted) return;
-      const anchor = document.createElement('a'); anchor.href = `/api/entries/${entry.id}/download?${params.toString()}`; anchor.download = resource.name;
+      const anchor = document.createElement('a'); anchor.href = appHref(`/api/entries/${entry.id}/download?${params.toString()}`); anchor.download = resource.name;
       document.body.append(anchor); anchor.click(); anchor.remove();
       setDownload({ pending: false, message: '已交給瀏覽器下載，請在瀏覽器確認結果。' });
     }, (error: unknown) => {

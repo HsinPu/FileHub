@@ -23,7 +23,7 @@ P1.1（2026-10-28）：應用程式 `0.8.0`，schema revision 2。P1.2–P1.5 �
 | Cookie | `filehub_session`，HttpOnly、SameSite=Strict、Path=/、無 Domain；HTTPS origin 加 Secure，清除用相同 attributes |
 | CSRF | HMAC-SHA256(raw session token, 固定 domain label)，只回 JSON；前端僅記憶體保存，以 `X-CSRF-Token` 傳回；不能用它作 session |
 | Origin | 所有改變 session 的請求要求 Origin 精確相符，拒絕缺少／null／cross-site；登入亦檢查，且只接受 JSON |
-| 反向代理 | `FILEHUB_PUBLIC_ORIGIN=https://files.example.com` 明確設定，不信任任意 Host／X-Forwarded headers；HTTP 僅允許 loopback |
+| 部署來源 | 以 `FILEHUB_PUBLIC_ORIGIN` 明確設定瀏覽器來源。HTTP 預設限 loopback，內網 HTTP 須另設 `FILEHUB_ALLOW_LAN_HTTP=true`。任意 Host／X-Forwarded headers 不會改變驗證對象 |
 | 本機預設 | 未設定 public origin 時，使用設定 host 與實際 socket port；動態 port fixture 可用；正式 Compose 設定外部 origin |
 | 節流 | SQLite 持久 15 分鐘視窗，account 5 次、IP 30 次；帳號成功清 account counter，IP 不清。key 為 hash；最多約 10000 筆，過期僅於登入清理 |
 

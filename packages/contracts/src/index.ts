@@ -2,6 +2,7 @@ export { ApiErrorCodeSchema, ApiErrorResponseSchema, ValidationLocationSchema } 
 export type { ApiErrorCode, ApiErrorResponse } from './errors.js';
 export { LiveResponseSchema, ReadyResponseSchema } from './health.js';
 export type { LiveResponse, ReadyResponse } from './health.js';
+export { FILEHUB_MOUNT_PATH, fileHubMountPrefix } from './mount.js';
 export { UsernameSchema, LoginRequestSchema, UserSchema, SessionResponseSchema } from './auth.js';
 export type { PublicUser, SessionResponse } from './auth.js';
 export { RelativePathSchema, EntrySchema, EntriesResponseSchema } from './entries.js';

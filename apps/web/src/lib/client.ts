@@ -2,6 +2,7 @@ import { ApiErrorResponseSchema } from '@filehub/contracts';
 import type { TSchema, Static } from 'typebox';
 import { Check } from 'typebox/value';
 import { ApiClientError } from './api.js';
+import { appHref } from './paths.js';
 
 export async function api<T extends TSchema>(url: string, schema: T, options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown; csrf?: string; bearer?: string; signal?: AbortSignal } = {}): Promise<Static<T>> {
   if (options.signal?.aborted) throw new ApiClientError('cancelled');
@@ -9,7 +10,7 @@ export async function api<T extends TSchema>(url: string, schema: T, options: { 
   const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal;
   const timer = setTimeout(() => { controller.abort(); }, 10_000);
   try {
-    const response = await fetch(url, { method: options.method ?? 'GET', credentials: 'same-origin', mode: 'same-origin', redirect: 'error', cache: 'no-store', signal,
+    const response = await fetch(appHref(url), { method: options.method ?? 'GET', credentials: 'same-origin', mode: 'same-origin', redirect: 'error', cache: 'no-store', signal,
       headers: { accept: 'application/json', ...(options.body === undefined ? {} : { 'content-type': 'application/json' }), ...(options.csrf ? { 'x-csrf-token': options.csrf } : {}), ...(options.bearer ? { authorization: `Bearer ${options.bearer}` } : {}) },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }) });
     const value: unknown = response.status === 204 ? null : await response.json().catch(() => { throw new ApiClientError('invalid_response'); });

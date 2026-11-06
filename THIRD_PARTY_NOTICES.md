@@ -38,4 +38,8 @@
 
 ## 發行方式
 
-三份授權原文隨 `apps/web/public/assets/licenses/` 原樣複製到正式 `build/assets/licenses/`，本文件亦輸出為該版的 `NOTICE-<版本>.txt`。API 以同源靜態資產提供，不依賴外部 CDN。實際檔案的 SHA-256、來源與本次修改依 [P8.1 決策](docs/decisions/P8-visual-system.md)及驗證證據；後續新增資產時同步更新本文件與對應聲明。
+授權原文隨 `apps/web/public/assets/licenses/` 原樣複製到正式 `build/assets/licenses/`，本文件亦輸出為該版的 `NOTICE-<版本>.txt`。API 以同源靜態資產提供，不依賴外部 CDN。字型的 SHA-256、來源與修改依 [P8.1 決策](docs/decisions/P8-visual-system.md)及驗證證據。
+
+## 內網 HTTP 的 SHA-256
+
+瀏覽器的上傳驗證在無 SubtleCrypto 時使用 `@noble/hashes` 2.0.1。原作者為 Paul Miller，採 MIT 授權。 [原始程式](https://github.com/paulmillr/noble-hashes/tree/2.0.1) [授權原文](apps/web/public/assets/licenses/noble-hashes-MIT.txt)

@@ -1,6 +1,8 @@
 import { OperationCapabilitiesSchema,OperationListSchema,OperationResponseSchema,OPERATION_LIMITS,type OperationCapabilities,type OperationCreate,type OperationResponse,type PublicEntry,type ResourceMetadata,type ListingResponse } from '@filehub/contracts';
 import { ApiClientError } from '../../lib/api.js';
 import { api,errorText } from '../../lib/client.js';
+import { appHref } from '../../lib/paths.js';
+import { browserUuid } from '../../lib/uuid.js';
 export interface Clipboard {kind:'copy'|'move';label:string;parent:string;sources:OperationCreate['sources']}
 export interface OperationSnapshot {jobs:readonly OperationResponse[];unknown:readonly string[];actions:readonly string[];loading:boolean;creating:boolean;open:boolean;clipboard?:Clipboard|undefined;capabilities?:OperationCapabilities|undefined;notice?:string|undefined;error?:string|undefined}
 type StorageAccess=Pick<Storage,'getItem'|'setItem'|'removeItem'>;
@@ -53,7 +55,7 @@ export class OperationController {
   }
   private async send(input:Omit<OperationCreate,'id'>):Promise<'accepted'|'unknown'|'rejected'>{
     if(this.snapshot.creating||this.lifetime.signal.aborted)return'rejected';if(!globalThis.crypto?.randomUUID){this.emit({notice:'建立工作需要 HTTPS 或 localhost。'});return'rejected';}
-    const id=crypto.randomUUID();this.invalidateReads();this.remember(id);this.emit({creating:true,notice:undefined,open:true});const signal=this.lifetime.signal;
+    const id=browserUuid();this.invalidateReads();this.remember(id);this.emit({creating:true,notice:undefined,open:true});const signal=this.lifetime.signal;
     try{const row=await this.request('/api/operations',OperationResponseSchema,{method:'POST',body:{...input,id},csrf:this.csrf,signal});this.merge(row,true);if(input.kind==='move')this.clearClipboard();return'accepted';}
     catch(error){
       if(signal.aborted)return'rejected';if(error instanceof ApiClientError&&error.status===401){this.fail(error);return'rejected';}
@@ -73,7 +75,7 @@ export class OperationController {
   async recheck(id:string){if(this.lifetime.signal.aborted||this.snapshot.actions.includes(id))return;this.emit({actions:[...this.snapshot.actions,id]});try{this.merge(await this.request(`/api/operations/${encodeURIComponent(id)}`,OperationResponseSchema,{signal:this.lifetime.signal}));}catch(error){this.fail(error);}finally{this.emit({actions:this.snapshot.actions.filter(value=>value!==id)});}}
   dismissNotice(){this.emit({notice:undefined});}
   async download(id:string){
-    const job=this.snapshot.jobs.find(row=>row.id===id);if(!job?.artifact||job.kind!=='archive')return;const url=`/api/operations/${encodeURIComponent(id)}/artifact`,controller=new AbortController(),signal=AbortSignal.any([controller.signal,this.lifetime.signal]),timer=setTimeout(()=>controller.abort(),10000);
+    const job=this.snapshot.jobs.find(row=>row.id===id);if(!job?.artifact||job.kind!=='archive')return;const url=appHref(`/api/operations/${encodeURIComponent(id)}/artifact`),controller=new AbortController(),signal=AbortSignal.any([controller.signal,this.lifetime.signal]),timer=setTimeout(()=>controller.abort(),10000);
     try{const response=await fetch(url,{method:'HEAD',credentials:'same-origin',mode:'same-origin',redirect:'error',cache:'no-store',signal});if(!response.ok)throw new ApiClientError('http',response.status,response.status===401?'UNAUTHORIZED':response.status===404?'NOT_FOUND':response.status===403?'FORBIDDEN':undefined);if(!/^application\/zip(?:;|$)/i.test(response.headers.get('content-type')??'')||Number(response.headers.get('content-length'))!==job.artifact.bytes||response.headers.get('etag')!==`"${job.artifact.sha256}"`)throw new ApiClientError('invalid_response');if(signal.aborted)return;const anchor=document.createElement('a');anchor.href=url;anchor.download=`FileHub-${id.slice(0,8)}.zip`;document.body.append(anchor);anchor.click();anchor.remove();this.emit({notice:'已交給瀏覽器下載，請在瀏覽器確認結果。'});}catch(error){if(!this.lifetime.signal.aborted)this.fail(error instanceof ApiClientError?error:new ApiClientError(controller.signal.aborted?'timeout':'network'));}finally{clearTimeout(timer);}
   }
   dispose(){if(this.lifetime.signal.aborted)return;this.invalidateReads();this.csrf='';this.emit({jobs:[],unknown:[],actions:[],loading:false,creating:false,open:false,clipboard:undefined,capabilities:undefined,notice:undefined,error:undefined});this.lifetime.abort();this.listeners.clear();}

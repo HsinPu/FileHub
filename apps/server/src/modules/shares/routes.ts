@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import type { FastifyPluginAsync,FastifyRequest,FastifyReply } from 'fastify';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { Static } from 'typebox';
-import { ApiErrorResponseSchema,ShareParamsSchema,ShareCreateSchema,ShareSchema,ShareListSchema,ShareAccessSchema,PublicShareChallengeSchema,PublicShareInfoSchema,PublicShareResourceSchema,PublicShareListingSchema,ResourceQuerySchema,ListQuerySchema } from '@filehub/contracts';
+import { ApiErrorResponseSchema,ShareParamsSchema,ShareCreateSchema,ShareSchema,ShareListSchema,ShareAccessSchema,PublicShareChallengeSchema,PublicShareInfoSchema,PublicShareResourceSchema,PublicShareListingSchema,ResourceQuerySchema,ListQuerySchema,fileHubMountPrefix } from '@filehub/contracts';
 import type { AppConfig } from '../../config/index.js';
 import { PublicError } from '../../plugins/errors.js';
 import type { IdentityService } from '../identity/service.js';
@@ -31,7 +31,15 @@ export const publicShareRoutes:FastifyPluginAsync<{shares:ShareService;config:Ap
   app.addHook('onClose',async()=>{const results=await Promise.allSettled([...downloads].map(close=>close()));if(results.some(result=>result.status==='rejected'))throw new Error('分享下載未正常關閉');});
   const operation=(request:FastifyRequest,reply:FastifyReply)=>{const stop=new AbortController(),abort=()=>{stop.abort();},close=()=>{if(!reply.raw.writableEnded)abort();};request.raw.once('aborted',abort);reply.raw.once('close',close);return{signal:AbortSignal.any([stop.signal,closing.signal]),dispose:()=>{request.raw.off('aborted',abort);reply.raw.off('close',close);}};};
   app.get('/public/shares/:id/info',{schema:{params:ShareParamsSchema,response:{200:PublicShareChallengeSchema,...errors}}},async(request,reply)=>{const current=operation(request,reply);try{return await shares.challenge(request.params.id,secret(request),grant(request,request.params.id),current.signal);}finally{current.dispose();}});
-  app.post('/public/shares/:id/access',{bodyLimit:2048,onRequest:async request=>{requireOrigin(request,config);},schema:{params:ShareParamsSchema,body:ShareAccessSchema,response:{200:PublicShareInfoSchema,...errors}}},async(request,reply)=>{const current=operation(request,reply);try{const result=await shares.access(request.params.id,secret(request),request.body.password,request.ip,current.signal);reply.header('set-cookie',`${publicCookieName(request.params.id)}=${result.token}; Path=/public/shares/${request.params.id}; HttpOnly; SameSite=Strict; Max-Age=${Math.max(0,Math.floor((result.expiresAt-Date.now())/1000))}${config.publicOrigin?.startsWith('https:')?'; Secure':''}`);return result.info;}finally{current.dispose();}});
+  app.post('/public/shares/:id/access',{bodyLimit:2048,onRequest:async request=>{requireOrigin(request,config);},schema:{params:ShareParamsSchema,body:ShareAccessSchema,response:{200:PublicShareInfoSchema,...errors}}},async(request,reply)=>{
+    const current=operation(request,reply);
+    try {
+      const result=await shares.access(request.params.id,secret(request),request.body.password,request.ip,current.signal);
+      const cookiePath=`${fileHubMountPrefix(request.originalUrl)}/public/shares/${request.params.id}`;
+      reply.header('set-cookie',`${publicCookieName(request.params.id)}=${result.token}; Path=${cookiePath}; HttpOnly; SameSite=Strict; Max-Age=${Math.max(0,Math.floor((result.expiresAt-Date.now())/1000))}${config.publicOrigin?.startsWith('https:')?'; Secure':''}`);
+      return result.info;
+    } finally { current.dispose(); }
+  });
   app.get('/public/shares/:id/resource',{schema:{params:ShareParamsSchema,querystring:ResourceQuerySchema,response:{200:PublicShareResourceSchema,...errors}}},async(request,reply)=>{const current=operation(request,reply);try{const result=await shares.metadata(request.params.id,grant(request,request.params.id),request.query.path??'',current.signal);if(request.query.version&&request.query.version!==result.version)throw new PublicError('CONFLICT');return result;}finally{current.dispose();}});
   app.get('/public/shares/:id/files',{schema:{params:ShareParamsSchema,querystring:ListQuerySchema,response:{200:PublicShareListingSchema,...errors}}},async(request,reply)=>{const current=operation(request,reply);try{return await shares.listPublic(request.params.id,grant(request,request.params.id),request.query.path??'',request.query,current.signal);}finally{current.dispose();}});
   instance.route<{Params:Static<typeof ShareParamsSchema>;Querystring:Static<typeof ResourceQuerySchema>}>({method:['GET','HEAD'],url:'/public/shares/:id/download',exposeHeadRoute:false,schema:{params:ShareParamsSchema,querystring:ResourceQuerySchema,response:errors},handler:async(request,reply)=>{

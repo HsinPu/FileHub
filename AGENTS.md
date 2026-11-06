@@ -4,7 +4,7 @@
 
 ## 目前階段
 
-P0–P9 共 62 份工作已完成；目前程式版本 `0.40.18`／schema 13，P10.1 為 H 品牌、P10.2 為白色畫布，進度與驗證依[主計畫](IMPLEMENTATION_PLAN.md)。P9 整體回歸與 134 張原圖見 P9.8（本機 `docs/validation/P9.8.md`），正式 image／完整備份還原／8088 已於 2026-11-04 交付 0.40.16，見 P10.4（本機 `docs/validation/P10.4.md`）；其後 P10.5 修正勾選欄並交付 0.40.17，P10.6 完成全畫面對齊稽核後，P0–P10 共 68 份完成；P10.7 第一行修正與全頁複核後共 69 份，交付見下節。Linux 寫入、Windows 開發唯讀；未驗環境依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。每份驗證後本機 commit，不 push。
+P0–P10 共 70 份工作已完成，目前程式版本 `0.41.0`／schema 13。P10.8 新增內網 HTTP 與 `/FileHub/`，已驗原生核心、Chromium 及隔離 Compose，包含 Linux 瀏覽器分段上傳（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，歷史版本與完整進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入、Windows 開發唯讀，未驗環境依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
 2026-11-01 使用者要求準備驗收並比對原始計畫，對照與操作清單見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。原始 33 項及後續定案契約分開核對；程式存在、歷史證據完整、目前測試通過及實際 8088 交付是不同判定，不能合併成「全部完成」。
 
@@ -97,7 +97,7 @@ P7.1–P7.9 已完成殼層、工具列、搜尋、選取、導覽、設定、�
 - P1.2 `EntryService` 每次查帳號／entry／grant，對外只有公開 DTO；root／祖先 identity、state 與重疊保護在私有 service。所有 symlink 先拒絕；正式 Linux 的 scoped storage 使用 pinned fd／O_NOFOLLOW，Windows 為已驗一般替換的開發路徑。FS owner／handle 關閉與平台限制依 P1 決策，不能以字串 prefix 或 Windows 測試宣稱完整隔離。
 - API／worker 共用本機 state 目錄與 SQLite WAL；DB／WAL／SHM 不放 NAS／NFS／SMB。工作與資源協調使用持久紀錄、短交易及有界 busy handling，不能只靠程序內鎖；檔案複製不持有長 DB 交易。
 - 兩服務使用同一 image 版本／digest、相容的掛載路徑與必要身份。Compose 固定 UID/GID 1000、唯讀 rootfs、drop ALL、同 local state／files／cache volumes；外部掛載範例預設唯讀、不自動 mkdir／chown。migration 成功 gate 不能代替升級前的兩服務停機；備份須保持 DB 與必要檔案狀態一致並驗還原。
-- Compose 主機預設綁定 `0.0.0.0:8088`。本機登入來源跟隨 `FILEHUB_HTTP_PORT`，跨機登入使用 HTTPS 反向代理並將 `FILEHUB_PUBLIC_ORIGIN` 設為瀏覽器的 HTTPS 來源。
+- Compose 的 project name 為 `filehub`，主機預設綁定 `0.0.0.0:8088`。`/FileHub/` 使用自己的登入 Cookie 與同前綴 API／靜態資源。跨機時以 `FILEHUB_PUBLIC_ORIGIN` 設定瀏覽器來源。內網 HTTP 要明確啟用 `FILEHUB_ALLOW_LAN_HTTP=true`。
 - Worker `main` 為 async，呼叫端須 await。Compose 在私有 tmpfs 發布原子 heartbeat，外部健康檢查核對 idle／ready、freshness、PID／Linux starttime 與 DB；它不是持久工作 lease。unhealthy 不等於自動重啟，沒有搶占同步／核心 I/O 的保證。
 - Vitest projects 分開收集，suite 最多 2 workers；`pnpm check` 核對 metadata／typecheck／lint，完整 build 一次後跑原生測試，不要求 Docker／瀏覽器。`verify:core` 加 Chromium，`verify:p0` 再建正式 image 並跑 Compose；獨立 `test:integration` 也先 build，`:run` 命令要求已有產物。缺少 browser／Docker／image 直接失敗，不 skip。
 - `tests/helpers/` 的目錄／子程序／環境 helpers 不依賴 runner；建立者先關閉資源，再核對 realpath、device／inode／非 symlink 清理自己的目錄，拒絕後保留現場。子程序等待 8 秒、緊急停止 2 秒，只終止自身 child；Compose 核對唯一 token，不 prune。Windows callbacks、Linux OS signal 與各瀏覽器平台分開報告。
@@ -111,7 +111,7 @@ P7.1–P7.9 已完成殼層、工具列、搜尋、選取、導覽、設定、�
 
 ## 版本與驗證
 
-- 版本來源為根 `package.json`，目前 `0.40.18`；三個私有 workspace 同版，實質程式變更依 SemVer 同步。發行版本亦同步 Docker label、Compose／env 預設 image tag 及 `docker/nfs-fixture.Dockerfile` 的 CI image 預設；fixtures 從根版本取 tag，`check:project` 核對一致性。文件變更不增加版本。
+- 版本來源為根 `package.json`，目前 `0.41.0`；三個私有 workspace 同版，實質程式變更依 SemVer 同步。發行版本亦同步 Docker label、Compose／env 預設 image tag 及 `docker/nfs-fixture.Dockerfile` 的 CI image 預設；fixtures 從根版本取 tag，`check:project` 核對一致性。文件變更不增加版本。
 - 修改文件後檢查相對連結、來源定位、圖表、證據邊界與 `git diff --check`。
 - 更新本檔、`MEMORY.md`、`README.md`，介面知識另同步 `DESIGN.md`；只保留已驗證且可長期使用的資訊。
 - 任務完成後提交本次相關變更；除非使用者另外明確要求，不自動 push。
@@ -132,7 +132,7 @@ P7.1–P7.9 已完成殼層、工具列、搜尋、選取、導覽、設定、�
 - upload_sessions／upload_chunks 是持久管理紀錄；bytes 不進 SQLite。取消／到期的未知或尚未清理 payload 保留容量，GET 不修復 FS；撤權 owner 可取消自己的未發布 session，不能藉此發布／刪除原檔。
 - receiver 先 fsync／驗權再提交 offset，錯誤只回復未提交尾端；發布前重讀每段與完整 hash。UploadService close 等待自己操作／guard，main 先 uploads、再 mutations、最後 DB。
 - upload publication 是內部 rename intent，public rename 不接受私有 source。恢復檢查 upload row／plan／witness 連結及兩個 OFD owner，已發布內容再驗 hash；不能只憑 session 狀態或一個 guard 推測完成。
-- UploadController 屬 Workspace，FilePanel key 改變不卸載佇列。單一傳送／100 項、每次最多 4 MiB Web Crypto，需 HTTPS／localhost；不將 File／CSRF 存 browser storage。重新選檔須驗全部已提交 prefix，不只比名稱與大小；送出 bytes 與 committed offset 分開。
+- UploadController 屬 Workspace，FilePanel key 改變不卸載佇列。單一傳送／100 項、每次最多 4 MiB，以 Web Crypto 或內網 HTTP 的本機 SHA-256 實作計算摘要；不將 File／CSRF 存 browser storage。重新選檔須驗全部已提交 prefix，不只比名稱與大小；送出 bytes 與 committed offset 分開。
 - UploadMaintainer 不自動發布；接收中斷驗 prefix 才 truncate 未提交尾端，過期／取消只刪私有已知 inode／nlink=1 的 payload，精確 witness 與 guard fd 交給 native unlinkat／parent fsync。unknown／換 inode／hardlink／缺 guard 保留；只挑本批 publication，不自動恢復無關 P2 操作。
 - maintenance 的私有 EntryService 方法不註冊公開 route，可在 owner／入口停用後清理已取消／到期的自有暫存；不授權公開瀏覽或發布。upload-maintain 是每批最多四筆，exit 0 只表示本批可判讀，不等於全域清空。
 - 背景上傳完成只 reload listing，不以更新 FilePanel key 刷新；否則會關閉其他正在編輯的 Modal。401 立即 dispose queue／File 參照；最後三視窗加強案例驗對話框與輸入保留。

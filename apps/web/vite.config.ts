@@ -8,6 +8,7 @@ const version = metadata.version;
 const notices = readFileSync(new URL('../../THIRD_PARTY_NOTICES.md', import.meta.url), 'utf8');
 
 export default defineConfig({
+  base: './',
   plugins: [react(), {
     name: 'filehub-attributions',
     generateBundle() { this.emitFile({ type: 'asset', fileName: `assets/licenses/NOTICE-${version}.txt`, source: notices }); },

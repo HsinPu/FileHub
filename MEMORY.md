@@ -4,7 +4,9 @@
 
 ## Compose 連接埠與登入
 
-- Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際的 HTTPS 來源。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。
+- Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際瀏覽器來源，內網 HTTP 必須明確啟用 `FILEHUB_ALLOW_LAN_HTTP=true`。`FILEHUB_PUBLIC_ORIGIN` 只填協定、主機與埠。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。
+
+- 0.41.0 支援 `/FileHub/` 路徑與原根網址。代理保留 `/FileHub/` 前綴，Vite 產物使用相對資產路徑。身分與分享 Cookie 依原始 URL 設定範圍。內網 HTTP 下 UUID 以 `getRandomValues` 產生，上傳採鎖定依賴的 SHA-256 實作。
 
 ## 原始碼發佈與測試產物
 

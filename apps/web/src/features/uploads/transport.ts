@@ -1,16 +1,20 @@
 import { Check } from 'typebox/value';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { ApiErrorResponseSchema, UploadResponseSchema, type UploadResponse } from '@filehub/contracts';
 import { ApiClientError } from '../../lib/api.js';
+import { appHref } from '../../lib/paths.js';
 
 export async function hashBlob(blob: Blob): Promise<string> {
-  if (!globalThis.crypto?.subtle) throw new Error('上傳需要 HTTPS 或 localhost，才能驗證檔案完整性。');
-  const hash = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
-  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  const buffer = await blob.arrayBuffer();
+  const hash = crypto.subtle
+    ? new Uint8Array(await crypto.subtle.digest('SHA-256', buffer))
+    : sha256(new Uint8Array(buffer));
+  return Array.from(hash, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 export function sendChunk(id: string, offset: number, bytes: Blob, sha256: string, csrf: string, signal: AbortSignal, progress: (bytes: number) => void): Promise<UploadResponse> {
   if (signal.aborted) return Promise.reject(new ApiClientError('cancelled'));
   return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest(), path = `/api/uploads/${id}/content`;
+    const xhr = new XMLHttpRequest(), path = appHref(`/api/uploads/${id}/content`);
     const abort = () => { xhr.abort(); };
     const finish = (error?: unknown, value?: UploadResponse) => { signal.removeEventListener('abort', abort); if (error) reject(error); else if (value) resolve(value); };
     xhr.open('PUT', path); xhr.timeout = 30_000;

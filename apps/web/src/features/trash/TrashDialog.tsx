@@ -4,6 +4,7 @@ import { MetadataResponseSchema, MutationResponseSchema, type ResourceMetadata, 
 import { api, errorText } from '../../lib/client.js';
 import { useResource } from '../../lib/useResource.js';
 import { ApiClientError } from '../../lib/api.js';
+import { browserUuid } from '../../lib/uuid.js';
 
 export function TrashDialog({ entry, source, restore, csrf, onExpired, onCancel, onDone }: {
   entry: string; source?: ResourceMetadata; restore?: TrashItem; csrf: string; onExpired(): void; onCancel(): void; onDone(): void;
@@ -30,7 +31,7 @@ export function TrashDialog({ entry, source, restore, csrf, onExpired, onCancel,
   };
   const submit = async () => {
     if (pending || attempt || (restore && (!directory.value || parentInput !== parent || !name))) return;
-    const id = crypto.randomUUID(); setAttempt(id); setPending(true); setError(undefined);
+    const id = browserUuid(); setAttempt(id); setPending(true); setError(undefined);
     try {
       const url = restore ? `/api/entries/${entry}/trash/${restore.id}/restore` : `/api/entries/${entry}/trash`;
       const body = restore ? { id, parent, name, parentVersion: directory.value?.resource.version, version: restore.version } : { id, path: source?.path, version: source?.version };

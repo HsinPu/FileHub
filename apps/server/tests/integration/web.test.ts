@@ -34,6 +34,23 @@ test('SPA 與 assets 由 API 同源提供，HTML 不快取，hash assets 可快�
   expect(head.body).toBe('');
 });
 
+test('/FileHub 前綴轉址保留 query，提供 SPA、資產與 API 路由', async () => {
+  const { app } = await webFixture();
+  const redirect = await app.inject('/FileHub?view=status');
+  expect(redirect.statusCode).toBe(308);
+  expect(redirect.headers.location).toBe('/FileHub/?view=status');
+  const html = await app.inject('/FileHub/?view=status');
+  expect(html.statusCode).toBe(200);
+  expect(html.body).toContain('FileHub fixture');
+  expect((await app.inject('/FileHub/assets/app-test.js')).headers['cache-control']).toContain('immutable');
+  expect((await app.inject('/FileHub/health/live')).json()).toEqual({ status: 'ok' });
+  for (const url of ['/FileHub/api/missing', '/FileHub/assets/%2e%2e/private.txt', '/FileHub-other/']) {
+    const response = await app.inject(url);
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ code: 'NOT_FOUND' });
+  }
+});
+
 test.each(['/api/missing', '/health/missing', '/assets/missing.js', '/src/main.tsx', '/@vite/client', '/.env', '/filehub.db', '/private.txt', '/assets/../private.txt', '/assets/%2e%2e/private.txt'])('未知 API／檔案 %s 不被 SPA fallback 吞掉，也不洩漏來源目錄', async (url) => {
   const { app } = await webFixture();
   const response = await app.inject({ url, headers: { accept: 'text/html' } });

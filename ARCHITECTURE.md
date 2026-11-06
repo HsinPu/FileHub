@@ -4,9 +4,9 @@
 
 新版 FileHub 採 Node.js、TypeScript 與 Fastify，前端使用 React、TypeScript 與 Ant Design；Vitest 負責單元與整合測試，Playwright 負責實際 HTTP 與瀏覽器操作驗證。管理資料庫為 SQLite（WAL），正式部署在單台 Linux 主機，以 Docker Compose 將同一 image 分成 `api`、`worker` 兩個服務。系統同時支援內建儲存及外部既有資料夾／NAS／NFS。
 
-P0–P8 共 53 份工作已完成；P9 完成 9／9，目前程式版本 `0.40.18`／schema 13。進度依[主計畫](IMPLEMENTATION_PLAN.md)，已交付完整功能依 P9.8（本機 `docs/validation/P9.8.md`）／P9.9（本機 `docs/validation/P9.9.md`），環境界線依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。Linux 寫入；Windows 開發唯讀。hosted CI 與未列明的實際掛載情境未驗。
+P0–P10 共 70 份工作已完成，目前程式版本 `0.41.0`／schema 13。進度依[主計畫](IMPLEMENTATION_PLAN.md)，環境界線依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。Linux 寫入，Windows 開發唯讀。
 
-P10.1 新增已核准的 H 圖像品牌及 320px 工具列修正，驗收見 P10.1（本機 `docs/validation/P10.1.md`）。P10.2 依[白色畫布規格](docs/decisions/P10-white-canvas.md)調整集中 theme／CSS，不改後端／schema 或 controller ownership；最近正式 image 與 8088 已為 0.40.18，交付依 P10.7（本機 `docs/validation/P10.7.md`）；全畫面對齊稽核見 P10.6（本機 `docs/validation/P10.6.md`）。
+P10.1 新增 H 圖像品牌及 320px 工具列修正。P10.2 依[白色畫布規格](docs/decisions/P10-white-canvas.md)調整集中 theme 與 CSS。本機 8088 依 P10.7 交付 0.40.18（本機 `docs/validation/P10.7.md`）。P10.8 的內網 HTTP 與路徑部署使用同一 schema 13，安裝見[部署操作](docs/operations/deployment.md)。
 
 原始計畫到目前功能、明確縮限與發行前置的對照見[2026-11-01 驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)；不以早期 API 命名草案或 Windows 唯讀結果代替目前 Linux 能力驗證。
 
@@ -225,6 +225,8 @@ flowchart LR
 
 P0.6 已由 Fastify 的 `plugins/web.ts` 提供正式 SPA：`/`、`/index.html` 及帶雜湊 assets；HTML no-store、assets immutable，未知 API／檔案仍 JSON 404，不使用全域 fallback。TypeScript outputs 放 dist，Vite outputs 放 `apps/web/build`，Docker runtime 帶入相同 build。開發用 `pnpm dev:web` 的 loopback Vite proxy，正式模式與瀏覽器驗證皆使用 Fastify 產物。[前端決策](docs/decisions/P0-web.md)定義 client 的 schema／取消／錯誤與 fixture 邊界。
 
+`/FileHub/` 與根網址共用正式產物與路由。Vite 使用相對資產路徑，Fastify 在路由前移除精確的 `/FileHub/` 前綴，依原始路徑設定登入與分享 Cookie 的範圍。反向代理保留前綴。部署來源仍以協定、主機與埠驗證，啟用內網 HTTP 須設定 `FILEHUB_ALLOW_LAN_HTTP=true` 與對應的 `FILEHUB_PUBLIC_ORIGIN`。
+
 ### 8.3 啟動、升級與備份
 
 Migration 是同 image 的一次性命令／服務，不算第三個常駐服務。首次啟動在 migration 成功後才啟 API／worker；Compose 可用 `service_completed_successfully` 表達門檻。schema 不相容時拒絕就緒，不讓兩服務各自競爭 migration。[Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/)
@@ -237,7 +239,7 @@ Drizzle Kit 在開發階段由 TypeScript schema 產生 SQL／migration metadata
 
 SQLite 備份使用其 online backup 機制，或在兩服務與其他 DB 寫入者皆停止後取得一致副本；不得只複製仍在使用中的 `.db`，也不手動刪除 WAL／SHM。DB 備份不等於檔案內容備份，整體還原另包含必要設定、內建檔案及外部目錄；若外部程式仍在寫入，須另確保儲存端的一致性。P0 建立 DB 還原 smoke，功能階段補齊工作與檔案狀態恢復驗證。[SQLite backup API](https://sqlite.org/backup.html)
 
-P0.5 使用固定 digest 的 Debian Bookworm／amd64 image，三角色 UID/GID 1000、read-only rootfs、drop ALL、no-new-privileges；每角色 512 MiB／1 CPU／128 PIDs。API 預設發布主機 `0.0.0.0:8088`，跨機登入以設定的 HTTPS 來源驗證。worker heartbeat 位於各容器私有 `/run/filehub` tmpfs；不能用連 DB 成功替代循環 freshness。外部入口健康依後續模型獨立呈現，不把一個 NFS 離線等同整個服務死亡。
+P0.5 使用固定 digest 的 Debian Bookworm／amd64 image，三角色 UID/GID 1000、read-only rootfs、drop ALL、no-new-privileges；每角色 512 MiB／1 CPU／128 PIDs。API 預設發布主機 `0.0.0.0:8088`。跨機登入驗證設定的單一 HTTPS 來源，或明確啟用的內網 HTTP 來源。worker heartbeat 位於各容器私有 `/run/filehub` tmpfs；不能用連 DB 成功替代循環 freshness。外部入口健康依後續模型獨立呈現，不把一個 NFS 離線等同整個服務死亡。
 
 [P6.3 完整維護](docs/decisions/P6-maintenance.md)提供 Linux filehub-full-v1 快照及全新目標還原，包含設定、所有入口及必要 state；停機 flock 與 owner guard proof 共同檢查，外部寫入仍需停寫。可攜還原重綁實體識別，未完成工作不重播；--preserve-schema 供舊快照搭配原 image 回復。DB-only CLI 仍是較窄的管理資料工具。[部署決策](docs/decisions/P0-deployment.md)、[可執行操作](docs/operations/deployment.md)、實測平台／限制（本機 `docs/validation/P0.5.md`）記錄固定 digest、掛載、健康與回復範圍；Docker Desktop 的結果不擴大為裸機或真實 NFS 故障保證。
 

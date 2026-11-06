@@ -1,6 +1,6 @@
 {
   "name": "@filehub/web",
-  "version": "0.40.18",
+  "version": "0.41.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@filehub/contracts": "workspace:*",
+    "@noble/hashes": "2.0.1",
     "antd": "6.6.8",
     "pdfjs-dist": "6.4.299",
     "react": "19.3.1",

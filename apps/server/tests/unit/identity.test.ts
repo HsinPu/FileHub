@@ -20,6 +20,14 @@ test('public origin 拒絕路徑、帳密、非 loopback HTTP 與空值，不信
   expect(parseConfig({ FILEHUB_PUBLIC_ORIGIN: 'https://files.example.test' }).publicOrigin).toBe('https://files.example.test');
 });
 
+test('內網 HTTP 需明確啟用，仍須提供無路徑的單一來源', () => {
+  const lanOrigin = 'http://192.168.1.10:8088';
+  expect(() => parseConfig({ FILEHUB_ALLOW_LAN_HTTP: 'yes', FILEHUB_PUBLIC_ORIGIN: lanOrigin })).toThrow();
+  expect(() => parseConfig({ FILEHUB_ALLOW_LAN_HTTP: 'false', FILEHUB_PUBLIC_ORIGIN: lanOrigin })).toThrow();
+  expect(() => parseConfig({ FILEHUB_ALLOW_LAN_HTTP: 'true', FILEHUB_PUBLIC_ORIGIN: `${lanOrigin}/FileHub` })).toThrow();
+  expect(parseConfig({ FILEHUB_ALLOW_LAN_HTTP: 'true', FILEHUB_PUBLIC_ORIGIN: lanOrigin }).publicOrigin).toBe(lanOrigin);
+});
+
 test('KDF 不建立無界佇列，同程序超過一個即節流', async () => {
   const first = hashPassword('Synthetic-concurrency-password');
   await expect(hashPassword('Another-synthetic-password')).rejects.toMatchObject({ code: 'RATE_LIMITED' });

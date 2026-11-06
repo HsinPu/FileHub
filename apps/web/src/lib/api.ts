@@ -1,5 +1,6 @@
 import { ApiErrorResponseSchema, ReadyResponseSchema, type ApiErrorCode, type ReadyResponse } from '@filehub/contracts';
 import { Check } from 'typebox/value';
+import { appHref } from './paths.js';
 
 type ErrorKind = 'http' | 'network' | 'timeout' | 'cancelled' | 'invalid_response';
 const messages: Record<ErrorKind, string> = {
@@ -32,7 +33,7 @@ export async function getReadiness({ signal, timeoutMs = 5000, fetcher = globalT
   let timedOut = false;
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
-    const response = await fetcher('/health/ready', {
+    const response = await fetcher(appHref('/health/ready'), {
       signal: controller.signal, credentials: 'same-origin', mode: 'same-origin', redirect: 'error', cache: 'no-store',
       headers: { accept: 'application/json' },
     });

@@ -4,6 +4,7 @@ import { PreviewResponseSchema, type ResourceMetadata } from '@filehub/contracts
 import { useResource } from '../../lib/useResource.js';
 import { errorText } from '../../lib/client.js';
 import { ApiClientError } from '../../lib/api.js';
+import { appHref } from '../../lib/paths.js';
 import { previewBytes } from './binary.js';
 import { ToolIcon } from '../../app/ToolIcon.js';
 import { drawPdf } from './pdf.js';
@@ -14,7 +15,7 @@ export function PreviewDialog({ entry, resource, onExpired, onCancel }: { entry:
   const base = `/api/entries/${entry}/preview`, info = useResource(open ? `${base}?${query}` : null, PreviewResponseSchema, onExpired);
   const close = () => { setOpen(false); };
   return <Modal open={open} title={<span title={resource.name}>預覽 {resource.name}</span>} rootClassName="preview-root" className={`preview-dialog${info.value?.kind==='text'?' text-preview':''}`} width="100%" closable={false} onCancel={close} afterClose={onCancel} destroyOnHidden footer={null}>
-    <div className="preview-tools" role="group" aria-label="預覽工具列"><Button type="text" aria-label="關閉預覽" title="關閉預覽" onClick={close}><ToolIcon name="close"/></Button><div className="preview-actions"><Button type="text" aria-label="重試預覽" title="重試預覽" onClick={()=>{setAttempt(value=>value+1);info.reload();}}><ToolIcon name="refresh"/></Button><Button type="text" aria-label="下載原檔" title="下載原檔" href={`/api/entries/${entry}/download?${query}`}><ToolIcon name="download"/></Button><Button type="text" aria-label="預覽資訊" title="預覽資訊" aria-expanded={details} aria-controls="preview-details" onClick={()=>setDetails(!details)}><ToolIcon name="info"/></Button></div></div>
+    <div className="preview-tools" role="group" aria-label="預覽工具列"><Button type="text" aria-label="關閉預覽" title="關閉預覽" onClick={close}><ToolIcon name="close"/></Button><div className="preview-actions"><Button type="text" aria-label="重試預覽" title="重試預覽" onClick={()=>{setAttempt(value=>value+1);info.reload();}}><ToolIcon name="refresh"/></Button><Button type="text" aria-label="下載原檔" title="下載原檔" href={appHref(`/api/entries/${entry}/download?${query}`)}><ToolIcon name="download"/></Button><Button type="text" aria-label="預覽資訊" title="預覽資訊" aria-expanded={details} aria-controls="preview-details" onClick={()=>setDetails(!details)}><ToolIcon name="info"/></Button></div></div>
     <div id="preview-details" className="preview-details" hidden={!details}><p className="preview-path" tabIndex={0} aria-label="預覽相對路徑">{resource.path}</p><p>安全預覽；文字唯讀，PDF 僅第一頁。完整內容請下載原檔。</p></div>
     {info.loading && <p role="status"><Spin size="small"/> 正在檢查預覽。</p>}
     {!!info.error && <Alert type="error" title={errorText(info.error)}/>}

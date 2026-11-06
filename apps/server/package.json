@@ -1,6 +1,6 @@
 {
   "name": "@filehub/server",
-  "version": "0.40.18",
+  "version": "0.41.0",
   "private": true,
   "type": "module",
   "exports": {

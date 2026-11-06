@@ -24,7 +24,7 @@ RUN pnpm build \
     && pnpm --filter @filehub/server deploy --prod --legacy --frozen-lockfile /out/server
 
 FROM node:24.22.1-bookworm-slim@sha256:2dd9a4f758e173b65fee15388f7706af6fb01ef50cf7a2c0538711d67a6981ae AS runtime
-LABEL org.opencontainers.image.title="FileHub" org.opencontainers.image.version="0.40.18"
+LABEL org.opencontainers.image.title="FileHub" org.opencontainers.image.version="0.41.0"
 ENV NODE_ENV=production FILEHUB_STATE_DIR=/data/state
 WORKDIR /app
 COPY --from=build /out/server/ ./apps/server/

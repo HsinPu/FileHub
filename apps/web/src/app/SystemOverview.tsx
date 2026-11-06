@@ -3,6 +3,7 @@ import { Alert, Button, Spin, Tag } from 'antd';
 import { PublicShell } from './PublicShell.js';
 import { ToolIcon } from './ToolIcon.js';
 import { ApiClientError, getReadiness } from '../lib/api.js';
+import { appHref } from '../lib/paths.js';
 
 type Status = { state: 'checking' | 'ready' | 'not_ready' } | { state: 'error'; error: ApiClientError };
 const labels = { checking: '檢查中', ready: '已就緒', not_ready: '尚未就緒', error: '連線異常' };
@@ -50,7 +51,7 @@ export function SystemOverview() {
             <div className="scope-row"><span className="step-number">02</span><div><h3>登入與檔案瀏覽</h3><p>確認身分與存取權限後，瀏覽及下載檔案。</p></div><Tag color="blue">已建立</Tag></div>
             <div className="scope-row"><span className="step-number">03</span><div><h3>檔案管理</h3><p>依服務設定與權限提供上傳、整理、搜尋、預覽與分享。</p></div><Tag color="blue">已建立</Tag></div>
           </div>
-          <p className="development-notice">登入後可依權限瀏覽、下載與管理檔案；分享連結提供獨立存取。<a href="/">返回檔案工作空間</a></p>
+          <p className="development-notice">登入後可依權限瀏覽、下載與管理檔案；分享連結提供獨立存取。<a href={appHref('/')}>返回檔案工作空間</a></p>
         </section>
 </PublicShell></div>;
 }

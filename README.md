@@ -2,7 +2,7 @@
 
 FileHub 是自行部署的網頁檔案管理工具，支援內建儲存與已掛載的外部資料夾。使用瀏覽器管理檔案、分享內容與追蹤背景工作；檔案本體保留在檔案系統，SQLite 只保存管理資料。
 
-目前版本 **0.40.18**，資料庫 schema **13**。正式部署目標是單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
+目前版本 **0.41.0**，資料庫 schema **13**。正式部署目標是單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
 
 ## 主要功能
 
@@ -52,10 +52,10 @@ docker compose config --quiet
 docker compose build migrate
 docker compose up -d --wait --wait-timeout 45 api worker
 docker compose ps -a
-curl --fail http://127.0.0.1:8088/health/ready
+curl --fail http://127.0.0.1:8088/FileHub/health/ready
 ```
 
-這會從原始碼建置本機 `filehub:0.40.18`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟預設網址 [http://127.0.0.1:8088/](http://127.0.0.1:8088/)。
+這會從原始碼建置本機 `filehub:0.41.0`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟 [http://127.0.0.1:8088/FileHub/](http://127.0.0.1:8088/FileHub/)。
 
 初次安裝**沒有預設帳密**。在互動終端建立管理員，密碼由隱藏提示輸入，至少 15 字元：
 
@@ -76,16 +76,31 @@ docker compose stop api worker
 
 | 設定 | 預設／用途 |
 | --- | --- |
-| `FILEHUB_IMAGE` | `filehub:0.40.18`，三角色共用同一版本 |
+| `FILEHUB_IMAGE` | `filehub:0.41.0`，三角色共用同一版本 |
 | `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT` | 預設 `0.0.0.0:8088`，讓 FileHub 在主機的 IPv4 網路介面接收連線 |
-| `FILEHUB_PUBLIC_ORIGIN` | 本機預設為 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。從其他電腦登入時設定實際使用的 HTTPS 網址 |
+| `FILEHUB_PUBLIC_ORIGIN` | 本機預設為 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。從其他電腦登入時設定實際使用的協定、主機與埠 |
+| `FILEHUB_ALLOW_LAN_HTTP` | 預設 `false`。在受信任內網使用 HTTP 登入時設定 `true` |
 | `FILEHUB_STATE_DIR` | 原生為執行目錄的 `state`；Compose 預設 `/data/state` |
 | `FILEHUB_EXTERNAL_SOURCE`／`FILEHUB_EXTERNAL_READ_ONLY` | 外部掛載範例，預設唯讀 |
 | `FILEHUB_LOG_LEVEL` | `info`；避免輸出帳密、Cookie 或使用者檔案內容 |
 
 如需沿用 8080，在 `.env` 設定 `FILEHUB_HTTP_PORT=8080` 即可。若也有手動指定 `FILEHUB_PUBLIC_ORIGIN`，請讓它與實際登入網址相符。
 
-從另一台電腦登入時，讓 HTTPS 反向代理轉發到 FileHub 主機的 8088 埠，在 `.env` 設定 `FILEHUB_PUBLIC_ORIGIN=https://files.example.com`，並用實際設定的 HTTPS 網址開啟 FileHub。若舊 `.env` 把 `FILEHUB_BIND_ADDRESS` 設成 `127.0.0.1`，需讓另一台主機上的代理連到 8088 時，改成 `0.0.0.0` 後執行 `docker compose up -d --wait api worker`。詳見[帳號與登入來源](docs/operations/identity.md#同源設定與-http-契約)。
+### 從另一台電腦開啟 FileHub
+
+在 `.env` 設定以下內容，並把 `192.168.1.10` 換成 FileHub 主機的內網 IP。`FILEHUB_PUBLIC_ORIGIN` 填協定、主機和埠，`/FileHub/` 加在瀏覽器網址上。
+
+```dotenv
+FILEHUB_IMAGE=filehub:0.41.0
+FILEHUB_BIND_ADDRESS=0.0.0.0
+FILEHUB_HTTP_PORT=8088
+FILEHUB_ALLOW_LAN_HTTP=true
+FILEHUB_PUBLIC_ORIGIN=http://192.168.1.10:8088
+```
+
+依上方步驟建置與啟動，再從另一台電腦開啟 `http://192.168.1.10:8088/FileHub/`。HTTP 會以未加密方式傳送帳密和檔案，適用於受信任的內網。
+
+Compose project name 為 `filehub`，服務名稱為 `api`。代理位於同一個 `filehub_default` Docker 網路時，可轉發至 `http://api:3000`。經主機網路轉發時，使用 FileHub 主機的 IP 與 8088 埠。代理保留 `/FileHub/` 前綴。如果外部入口使用 HTTPS，將 `FILEHUB_PUBLIC_ORIGIN` 設為實際的 HTTPS 來源。詳見[帳號與登入來源](docs/operations/identity.md#同源設定與-http-契約)。
 
 完整設定見 [.env.example](.env.example) 與[部署操作](docs/operations/deployment.md)。外部目錄使用 [compose.mounts.example.yaml](compose.mounts.example.yaml)，API／worker 必須有一致掛載；不自動建立來源目錄或遞迴修改權限。
 

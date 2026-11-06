@@ -29,8 +29,9 @@ docker compose exec api node apps/server/dist/cli.js user-disable reader
 ## 同源設定與 HTTP 契約
 
 - 原生 loopback 未指定時，以設定 host／實際 socket port 驗證 Origin。使用開發 proxy 時，明確將 `FILEHUB_PUBLIC_ORIGIN` 設為瀏覽器 origin。
-- Compose 預設 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。反向代理須設定完整 HTTPS origin，例如 `https://files.example.com`，不能帶結尾 `/`、路徑或帳密。HTTPS 由代理提供。
-- HTTP 僅支援 loopback 開發；HTTPS origin 發 Secure Cookie。請求提供偽造 Host／X-Forwarded headers 不會改變信任 origin。
+- Compose 的本機登入來源預設 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。反向代理可設定實際 HTTPS 來源，例如 `https://files.example.com`。`FILEHUB_PUBLIC_ORIGIN` 只包含協定、主機與埠。HTTPS 由代理提供。
+- 受信任的內網可以明確設定 `FILEHUB_ALLOW_LAN_HTTP=true`，並以 `FILEHUB_PUBLIC_ORIGIN` 指定實際 HTTP 來源。登入與 CSRF 仍驗證該單一來源，Host／X-Forwarded headers 不會改變驗證對象。
+- HTTPS 來源發 Secure Cookie。`/FileHub/` 的登入 Cookie 使用獨立名稱，範圍限定於 `/FileHub/`。原根網址的 session 沿用原 Cookie。
 - `POST /api/session` 接 JSON username／password 並要求同源 Origin；成功回公開 user、csrfToken、expiresAt，session 僅由 HttpOnly Cookie 傳送。
 - `GET /api/session` 取得目前 session；401 需重新登入。`DELETE /api/session` 另要求同源 Origin 與 `X-CSRF-Token`，成功 204；舊 Cookie 重播失敗。
 - session 絕對 12 小時，最多 10 個有效 session；帳號 5 次／IP 30 次登入嘗試、15 分鐘視窗，KDF 同程序限一個；429 請稍後重試。沒有清除全部 session 的公開 HTTP 管理 API。

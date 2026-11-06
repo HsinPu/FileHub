@@ -166,11 +166,19 @@ test('Linux 同 image migration→雙服務，權限／健康／持久卷符合�
   expect(home.headers.get('content-type')).toContain('text/html');
   expect(home.headers.get('cache-control')).toBe('no-store');
   const markup = await home.text();
-  const script = markup.match(/src="(\/assets\/[^"/]+\.js)"/)?.[1];
+  const script = markup.match(/src="(\.\/assets\/[^"/]+\.js)"/)?.[1];
   if (!script) throw new Error('正式 image 缺少 SPA script');
-  const asset = await fetch(`${baseUrl}${script}`);
+  const asset = await fetch(new URL(script, home.url));
   expect(asset.status).toBe(200);
   expect(asset.headers.get('cache-control')).toContain('immutable');
+  const prefixedHome = await fetch(`${baseUrl}/FileHub`);
+  expect(new URL(prefixedHome.url).pathname).toBe('/FileHub/');
+  expect(prefixedHome.status).toBe(200);
+  expect(await prefixedHome.text()).toBe(markup);
+  const prefixedAsset = await fetch(new URL(script, prefixedHome.url));
+  expect(prefixedAsset.status).toBe(200);
+  expect(prefixedAsset.headers.get('cache-control')).toContain('immutable');
+  expect(await prefixedAsset.text()).toBe(await asset.text());
   for (const role of ['api', 'worker']) {
     expect(JSON.parse(await project.node(role, diagnostics))).toMatchObject({ node: 'v24.22.1', uid: 1000, gid: 1000, sqliteVersion: '3.53.4', journalMode: 'wal', foreignKeys: 1, synchronous: 2, walAutoCheckpoint: 1000 });
   }

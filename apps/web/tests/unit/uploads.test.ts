@@ -1,5 +1,15 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { uploadRelativePath, planSelection } from '../../src/features/uploads/model.js';
+import { hashBlob } from '../../src/features/uploads/transport.js';
+
+test('內網 HTTP 缺少 SubtleCrypto 時仍驗證上傳的 SHA-256', async () => {
+  const data = new Blob(['abc']);
+  const digest = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
+  expect(await hashBlob(data)).toBe(digest);
+  vi.stubGlobal('crypto', { subtle: undefined });
+  try { expect(await hashBlob(data)).toBe(digest); }
+  finally { vi.unstubAllGlobals(); }
+});
 
 test.each(['../file', '/file', 'a//b', 'a\\b', 'C:/file', 'a/./b', '.filehub/a', 'a/.FILEHUB/b', 'a/NUL.txt', 'a/trailing.', 'a/ spaced', 'a/line\nname', 'a/'.repeat(64) + 'file', '中'.repeat(86)])('folder input 拒絕不可攜／越界相對路徑 %j', (value) => { expect(() => uploadRelativePath(value)).toThrow(); });
 test('保留 Unicode／百分號 literal，空檔與長中文名稱均可規劃', () => {

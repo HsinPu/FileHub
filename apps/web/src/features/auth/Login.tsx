@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Alert, Button, Input } from 'antd';
 import { SessionResponseSchema, type SessionResponse } from '@filehub/contracts';
 import { api, errorText } from '../../lib/client.js';
+import { appHref } from '../../lib/paths.js';
 import { BrandMark } from '../../app/BrandMark.js';
 
 export function Login({ onLogin, notice }: { onLogin(session: SessionResponse): void; notice?: string }) {
@@ -17,7 +18,7 @@ export function Login({ onLogin, notice }: { onLogin(session: SessionResponse): 
   };
   return <main id="main" className="login-page">
     <section className="login-panel" aria-labelledby="login-title">
-      <a className="login-brand workspace-brand" href="/" aria-label="FileHub 首頁"><BrandMark/></a>
+      <a className="login-brand workspace-brand" href={appHref('/')} aria-label="FileHub 首頁"><BrandMark/></a>
       <h1 id="login-title">登入 FileHub</h1><p className="login-caption">使用管理員建立的帳號登入。</p>
       {notice && <Alert type="info" title={notice} showIcon/>}
       {error && <Alert type="error" title={error} showIcon/>}
@@ -28,6 +29,6 @@ export function Login({ onLogin, notice }: { onLogin(session: SessionResponse): 
       </form>
       <p className="login-help">需要協助時，請聯絡管理員。</p>
     </section>
-    <footer className="login-footer"><a href="/?view=status">服務狀態</a><span>FileHub {__FILEHUB_VERSION__}</span></footer>
+    <footer className="login-footer"><a href={appHref('/?view=status')}>服務狀態</a><span>FileHub {__FILEHUB_VERSION__}</span></footer>
   </main>;
 }

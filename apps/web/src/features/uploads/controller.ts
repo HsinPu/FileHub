@@ -1,6 +1,7 @@
 import { UPLOAD_LIMITS, MetadataResponseSchema, MutationResponseSchema, UploadResponseSchema, UploadListSchema, type UploadResponse } from '@filehub/contracts';
 import { ApiClientError } from '../../lib/api.js';
 import { api, errorText } from '../../lib/client.js';
+import { browserUuid } from '../../lib/uuid.js';
 import { hashBlob, sendChunk } from './transport.js';
 import { joinUploadPath, planSelection, uploadRelativePath } from './model.js';
 
@@ -23,10 +24,9 @@ export class UploadController {
   private failed(error: unknown) { if (error instanceof ApiClientError && error.status === 401) { this.dispose(); this.expired(); } }
   dispose() { this.lifetime.abort(); this.running?.controller.abort(); this.listeners.clear(); this.snapshot = { jobs: [] }; }
   enqueue(files: readonly File[], folder: boolean, target: UploadTarget) {
-    if (!globalThis.crypto?.subtle || !crypto.randomUUID) { this.emit({ ...this.snapshot, notice: '上傳需要 HTTPS 或 localhost，才能驗證檔案完整性。' }); return; }
     const retained = this.snapshot.jobs.filter((job) => !['completed', 'cancelled'].includes(job.phase));
     if (files.length + retained.length > 100) { this.emit({ ...this.snapshot, notice: '上傳面板一次最多保留 100 個項目，請分批選取。' }); return; }
-    const jobs = planSelection(files, folder, target.parent).map(({ file, path, error }): UploadJob => ({ id: crypto.randomUUID(), target, path, size: file.size, offset: 0, sent: 0, phase: error ? 'error' : 'queued', file, ...(error ? { message: error } : {}) }));
+    const jobs = planSelection(files, folder, target.parent).map(({ file, path, error }): UploadJob => ({ id: browserUuid(), target, path, size: file.size, offset: 0, sent: 0, phase: error ? 'error' : 'queued', file, ...(error ? { message: error } : {}) }));
     this.emit({ jobs: [...retained, ...jobs] }); this.pump();
   }
   async load(target: UploadTarget) {
@@ -56,7 +56,7 @@ export class UploadController {
       } catch (error) {
         if (!(error instanceof ApiClientError) || error.status !== 404) throw error;
         const metadata = await api(`/api/entries/${job.target.entryId}/metadata?${new URLSearchParams({ path: parent })}`, MetadataResponseSchema, { signal });
-        const id = crypto.randomUUID();
+        const id = browserUuid();
         try { await api(`/api/entries/${job.target.entryId}/directories`, MutationResponseSchema, { method: 'POST', body: { id, parent, parentVersion: metadata.resource.version, name: folder }, csrf: this.csrf, signal }); }
         catch (failure) {
           if (signal.aborted) throw failure;

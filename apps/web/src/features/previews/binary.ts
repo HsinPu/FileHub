@@ -1,8 +1,9 @@
 import { ApiClientError } from '../../lib/api.js';
+import { appHref } from '../../lib/paths.js';
 
 export async function previewBytes(url: string, signal: AbortSignal, maxBytes = 16777216): Promise<{ bytes: Uint8Array<ArrayBuffer>; mime: string }> {
   const timeout = AbortSignal.timeout(10000), combined = AbortSignal.any([signal, timeout]);
-  const response = await fetch(url, { signal: combined, credentials: 'same-origin', mode: 'same-origin', redirect: 'error', cache: 'no-store' });
+  const response = await fetch(appHref(url), { signal: combined, credentials: 'same-origin', mode: 'same-origin', redirect: 'error', cache: 'no-store' });
   if (!response.ok) { await response.body?.cancel(); throw new ApiClientError('http', response.status); }
   const mime = response.headers.get('content-type')?.split(';')[0] ?? '';
   const max = Math.min(maxBytes, mime === 'image/jpeg' ? 4194304 : mime === 'text/plain' ? 262144 : mime === 'application/pdf' ? 16777216 : 0);

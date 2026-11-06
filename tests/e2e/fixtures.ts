@@ -9,14 +9,15 @@ import { prepareWorkspace, type WorkspaceFixture } from './workspace-data.js';
 interface FileHubFixture { readonly url: string; setRevision(revision: number): void; startWorker(): Promise<void> }
 export { fixturePassword } from './workspace-data.js';
 
-export const test = base.extend<{ filehub: FileHubFixture; workspaceData: WorkspaceFixture }>({
+export const test = base.extend<{ filehub: FileHubFixture; workspaceData: WorkspaceFixture; lanHttpOrigin?: string }>({
+  lanHttpOrigin: [undefined, { option: true }],
   workspaceData: async ({ filehub }, use) => {
     if (!filehub.url) throw new Error('fixture 尚未啟動');
     const prepare = seedWorkspace.get(filehub);
     if (!prepare) throw new Error('fixture 沒有 workspace 資料');
     await use(await prepare());
   },
-  filehub: async ({ browserName }, use) => {
+  filehub: async ({ browserName, lanHttpOrigin }, use) => {
     if (browserName !== 'chromium') throw new Error('目前瀏覽器矩陣只驗證 Chromium');
     const temporary = await createTemporaryDirectory('filehub-e2e-');
     const config = { stateDirectory: join(temporary.directory, 'state'), sqliteBusyTimeoutMs: 100 };
@@ -30,6 +31,7 @@ export const test = base.extend<{ filehub: FileHubFixture; workspaceData: Worksp
       const prepare = () => preparation ??= prepareWorkspace(temporary.directory, config, provisioning.signal);
       child = new ManagedNode([fileURLToPath(new URL('../system/fixtures/service.mjs', import.meta.url)), 'api'], temporary.directory, {
         FILEHUB_STATE_DIR: config.stateDirectory, FILEHUB_HOST: '127.0.0.1', FILEHUB_PORT: '0', FILEHUB_LOG_LEVEL: 'silent', FILEHUB_SHUTDOWN_TIMEOUT_MS: '1000',
+        ...(lanHttpOrigin ? { FILEHUB_ALLOW_LAN_HTTP: 'true', FILEHUB_PUBLIC_ORIGIN: lanHttpOrigin } : {}),
       }, true);
       const started = await child.waitForMessage((message) => message.type === 'started');
       if (typeof started.address !== 'string' || !/^http:\/\/127\.0\.0\.1:\d+$/.test(started.address) || started.pid !== child.pid) throw new Error('無效瀏覽器 fixture 位址／程序身分');

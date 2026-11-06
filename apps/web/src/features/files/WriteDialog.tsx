@@ -4,6 +4,7 @@ import { MetadataResponseSchema, MutationResponseSchema, type ResourceMetadata }
 import { api, errorText } from '../../lib/client.js';
 import { useResource } from '../../lib/useResource.js';
 import { ApiClientError } from '../../lib/api.js';
+import { browserUuid } from '../../lib/uuid.js';
 
 export function WriteDialog({ entry, parent, source, csrf, onExpired, onCancel, onDone }: {
   entry: string; parent: string; source?: ResourceMetadata; csrf: string; onExpired(): void; onCancel(): void; onDone(): void;
@@ -31,7 +32,7 @@ export function WriteDialog({ entry, parent, source, csrf, onExpired, onCancel, 
   };
   const submit = async () => {
     if (!directory.value || !name || pending || attempt) return;
-    const id = crypto.randomUUID(); setAttempt(id); setPending(true); setError(undefined);
+    const id = browserUuid(); setAttempt(id); setPending(true); setError(undefined);
     try {
       const value = await api(`/api/entries/${entry}/${source ? 'rename' : 'directories'}`, MutationResponseSchema, { method: 'POST', csrf,
         body: { id, parent, parentVersion: directory.value.resource.version, name, ...(source ? { path: source.path, version: source.version } : {}) } });

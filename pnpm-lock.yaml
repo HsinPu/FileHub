@@ -236,6 +236,9 @@ importers:
       '@filehub/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@noble/hashes':
+        specifier: 2.0.1
+        version: 2.0.1
       antd:
         specifier: 6.6.8
         version: 6.6.8(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -1139,6 +1142,10 @@ packages:
   '@napi-rs/canvas@1.0.13':
     resolution: {integrity: sha512-b87ugZpQ5ViwqVBkjervxpwa0GmJPsKHLBNoZN6GpjWeHzTbDUGryriq+2DYW2XbB+xCqSIINQysC0/I87nPbw==}
     engines: {node: '>= 10'}
+
+  '@noble/hashes@2.0.1':
+    resolution: {integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==}
+    engines: {node: '>= 20.19.0'}
 
   '@oxc-project/types@0.155.0':
     resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
@@ -3152,6 +3159,8 @@ snapshots:
       '@napi-rs/canvas-win32-arm64-msvc': 1.0.13
       '@napi-rs/canvas-win32-x64-msvc': 1.0.13
     optional: true
+
+  '@noble/hashes@2.0.1': {}
 
   '@oxc-project/types@0.155.0': {}
 

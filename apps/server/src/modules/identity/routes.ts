@@ -1,17 +1,21 @@
 import { timingSafeEqual } from 'node:crypto';
 import { Type } from 'typebox';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
-import { LoginRequestSchema, SessionResponseSchema, ApiErrorResponseSchema } from '@filehub/contracts';
+import { LoginRequestSchema, SessionResponseSchema, ApiErrorResponseSchema, fileHubMountPrefix } from '@filehub/contracts';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { AppConfig } from '../../config/index.js';
 import { PublicError } from '../../plugins/errors.js';
 import type { IdentityService } from './service.js';
 
 export const COOKIE_NAME = 'filehub_session';
+function sessionCookieName(request: FastifyRequest): string {
+  return fileHubMountPrefix(request.originalUrl) ? `${COOKIE_NAME}_filehub` : COOKIE_NAME;
+}
 export function sessionCookie(request: FastifyRequest): string | undefined {
-  const values = (request.headers.cookie ?? '').split(';').map((part) => part.trim()).filter((part) => part.startsWith(`${COOKIE_NAME}=`));
+  const name = sessionCookieName(request);
+  const values = (request.headers.cookie ?? '').split(';').map((part) => part.trim()).filter((part) => part.startsWith(`${name}=`));
   if (values.length !== 1) return undefined;
-  return values[0]?.slice(COOKIE_NAME.length + 1);
+  return values[0]?.slice(name.length + 1);
 }
 function targetOrigin(request: FastifyRequest, config: AppConfig): string {
   const host = config.host.includes(':') ? `[${config.host}]` : config.host;
@@ -20,10 +24,11 @@ function targetOrigin(request: FastifyRequest, config: AppConfig): string {
 export function requireOrigin(request: FastifyRequest, config: AppConfig): void {
   if (request.headers.origin !== targetOrigin(request, config) || request.headers['sec-fetch-site'] === 'cross-site') throw new PublicError('FORBIDDEN');
 }
-function cookieValue(token: string, origin: string, clear = false): string {
-  return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${clear ? 0 : 43200}${origin.startsWith('https:') ? '; Secure' : ''}`;
+function cookieValue(token: string, request: FastifyRequest, config: AppConfig, clear = false): string {
+  const path = `${fileHubMountPrefix(request.originalUrl)}/`;
+  return `${sessionCookieName(request)}=${token}; Path=${path}; HttpOnly; SameSite=Strict; Max-Age=${clear ? 0 : 43200}${targetOrigin(request, config).startsWith('https:') ? '; Secure' : ''}`;
 }
-export function clearSessionCookie(request:FastifyRequest,config:AppConfig):string{return cookieValue('',targetOrigin(request,config),true);}
+export function clearSessionCookie(request:FastifyRequest,config:AppConfig):string{return cookieValue('',request,config,true);}
 export function requireCsrf(request: FastifyRequest, expected: string, config: AppConfig): void {
   requireOrigin(request, config);
   const actual = request.headers['x-csrf-token'];
@@ -38,7 +43,7 @@ export const identityRoutes: FastifyPluginAsync<{ identity: IdentityService; con
     schema: { body: LoginRequestSchema, response: { 200: SessionResponseSchema, ...errors } },
   }, async (request, reply) => {
     const result = await identity.login(request.body.username, request.body.password, request.ip, sessionCookie(request));
-    reply.header('set-cookie', cookieValue(result.token, targetOrigin(request, config)));
+    reply.header('set-cookie', cookieValue(result.token, request, config));
     return result.session;
   });
   app.get('/api/session', { schema: { response: { 200: SessionResponseSchema, ...errors } } }, async (request) => {
@@ -49,6 +54,6 @@ export const identityRoutes: FastifyPluginAsync<{ identity: IdentityService; con
     const session = identity.authenticate(sessionCookie(request));
     requireCsrf(request, session.csrfToken, config);
     identity.logout(session);
-    return reply.header('set-cookie', cookieValue('', targetOrigin(request, config), true)).code(204).send(null);
+    return reply.header('set-cookie', clearSessionCookie(request, config)).code(204).send(null);
   });
 };

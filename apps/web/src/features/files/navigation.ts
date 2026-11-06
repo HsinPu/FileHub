@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { appHref } from '../../lib/paths.js';
 
 export type SettingsSection = 'personal' | 'accounts' | 'storage';
 export type PrivateView = 'files' | 'settings' | 'shares' | 'trash';
@@ -16,7 +17,7 @@ export function href(location: Location): string {
   else if (location.view === 'shares' || location.view === 'trash') query.set('view', location.view);
   if (location.filter) query.set('filter', location.filter);
   if (location.page > 1) { query.set('page', String(location.page)); query.set('version', location.version); }
-  return `/?${query.toString()}`;
+  return appHref(`/?${query.toString()}`);
 }
 export type NavigationGuard = () => boolean;
 export type RegisterNavigationGuard = (guard: NavigationGuard) => () => void;
