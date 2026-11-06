@@ -10,7 +10,7 @@
 
 在儲存庫根目錄複製 `.env.example` 為 `.env`，確認 image／主機埠。Compose 不使用原生開發的 `FILEHUB_HOST`／`FILEHUB_PORT`，容器內固定 `0.0.0.0:3000`；主機用 `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT`。若原生 `.env` 有自訂 Windows `FILEHUB_STATE_DIR`，部署時改用獨立 env file 的 Linux 容器路徑。未設定時使用 `/data/state`。
 
-主機預設綁定 `127.0.0.1:8088`，預設登入來源隨 `FILEHUB_HTTP_PORT` 調整。使用 HTTPS 反向代理時，請明確設定 `FILEHUB_PUBLIC_ORIGIN` 為瀏覽器的 HTTPS 來源。
+主機預設綁定 `0.0.0.0:8088`，本機登入來源隨 `FILEHUB_HTTP_PORT` 調整。跨機登入使用 HTTPS 反向代理，請明確設定 `FILEHUB_PUBLIC_ORIGIN` 為瀏覽器的 HTTPS 來源。舊 `.env` 內的 `FILEHUB_BIND_ADDRESS` 會覆寫範本預設。
 
 ```shell
 docker compose config --quiet
@@ -22,7 +22,7 @@ curl --fail http://127.0.0.1:8088/health/ready
 
 預期 `migrate` Exited (0)，API／worker 都 healthy，HTTP 回 `{"status":"ready"}`。`http://127.0.0.1:8088/` 提供登入／工作空間，`/?view=status` 為公開服務概覽。首次 named volumes 由 image 準備 UID/GID 1000 的空目錄權限；不會修復既有 volume 的錯誤 owner。`FILEHUB_IMAGE` 預設 `filehub:0.40.18`，建置一次給三角色使用。若指定已發布的 registry digest，先自行 pull 該 digest，再直接 up，勿用 digest 作 build tag。
 
-檢查三角色 `docker inspect` 的 `.Image` 相同、`.Config.User` 均 `1000:1000`，及兩服務 state 的 `.Mounts` 指向相同 named volume。無 override 時為 `filehub_state`、`filehub_files`、`filehub_cache`。主機預設僅 loopback；是否對外發布依後續部署需求另行處理。
+檢查三角色 `docker inspect` 的 `.Image` 相同、`.Config.User` 均 `1000:1000`，及兩服務 state 的 `.Mounts` 指向相同 named volume。無 override 時為 `filehub_state`、`filehub_files`、`filehub_cache`。若反向代理與 FileHub 位於同一台機器，可將 `FILEHUB_BIND_ADDRESS` 設為 `127.0.0.1`，讓其他機器從代理的 HTTPS 入口連線。
 
 ```shell
 docker compose stop api worker

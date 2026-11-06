@@ -77,15 +77,15 @@ docker compose stop api worker
 | 設定 | 預設／用途 |
 | --- | --- |
 | `FILEHUB_IMAGE` | `filehub:0.40.18`，三角色共用同一版本 |
-| `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT` | Compose 綁定 `127.0.0.1:8088` |
-| `FILEHUB_PUBLIC_ORIGIN` | 預設 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。手動指定時須與瀏覽器使用的協定、主機及埠相符 |
+| `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT` | 預設 `0.0.0.0:8088`，讓 FileHub 在主機的 IPv4 網路介面接收連線 |
+| `FILEHUB_PUBLIC_ORIGIN` | 本機預設為 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。從其他電腦登入時設定實際使用的 HTTPS 網址 |
 | `FILEHUB_STATE_DIR` | 原生為執行目錄的 `state`；Compose 預設 `/data/state` |
 | `FILEHUB_EXTERNAL_SOURCE`／`FILEHUB_EXTERNAL_READ_ONLY` | 外部掛載範例，預設唯讀 |
 | `FILEHUB_LOG_LEVEL` | `info`；避免輸出帳密、Cookie 或使用者檔案內容 |
 
 如需沿用 8080，在 `.env` 設定 `FILEHUB_HTTP_PORT=8080` 即可。若也有手動指定 `FILEHUB_PUBLIC_ORIGIN`，請讓它與實際登入網址相符。
 
-從另一台電腦連線時，可在部署主機使用 HTTPS 反向代理，轉發到 `127.0.0.1:8088` 或實際設定的埠。將 `FILEHUB_PUBLIC_ORIGIN` 設成瀏覽器所用的 HTTPS 來源，例如 `https://files.example.com`。詳見[帳號與登入來源](docs/operations/identity.md#同源設定與-http-契約)。
+從另一台電腦登入時，讓 HTTPS 反向代理轉發到 FileHub 主機的 8088 埠，在 `.env` 設定 `FILEHUB_PUBLIC_ORIGIN=https://files.example.com`，並用實際設定的 HTTPS 網址開啟 FileHub。若舊 `.env` 把 `FILEHUB_BIND_ADDRESS` 設成 `127.0.0.1`，需讓另一台主機上的代理連到 8088 時，改成 `0.0.0.0` 後執行 `docker compose up -d --wait api worker`。詳見[帳號與登入來源](docs/operations/identity.md#同源設定與-http-契約)。
 
 完整設定見 [.env.example](.env.example) 與[部署操作](docs/operations/deployment.md)。外部目錄使用 [compose.mounts.example.yaml](compose.mounts.example.yaml)，API／worker 必須有一致掛載；不自動建立來源目錄或遞迴修改權限。
 

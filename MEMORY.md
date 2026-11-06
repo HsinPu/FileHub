@@ -4,7 +4,7 @@
 
 ## Compose 連接埠與登入
 
-- Compose 預設主機埠為 8088，未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時由 `FILEHUB_HTTP_PORT` 產生 loopback HTTP 來源。原本指定 8080 的 `.env` 可沿用。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。
+- Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際的 HTTPS 來源。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。
 
 ## 原始碼發佈與測試產物
 

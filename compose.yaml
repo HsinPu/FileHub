@@ -55,7 +55,7 @@ services:
       FILEHUB_PORT: 3000
       FILEHUB_READINESS_TIMEOUT_MS: ${FILEHUB_READINESS_TIMEOUT_MS:-1000}
     ports:
-      - "${FILEHUB_BIND_ADDRESS:-127.0.0.1}:${FILEHUB_HTTP_PORT:-8088}:3000"
+      - "${FILEHUB_BIND_ADDRESS:-0.0.0.0}:${FILEHUB_HTTP_PORT:-8088}:3000"
     healthcheck:
       test: [CMD, node, apps/server/dist/healthcheck.js, api]
       interval: 5s

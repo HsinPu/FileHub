@@ -64,7 +64,7 @@ docker run --rm --cpus 2 --memory 2g --pids-limit 512 --shm-size 256m \
 | Windows 10 x64 | 原生核心 tests／Chromium 三視窗已驗；signal 用 Node callback／IPC，非 POSIX signal 保證 |
 | Debian 12 amd64，Docker Desktop WSL2 | 乾淨 Linux 核心／Chromium 與正式 Compose 已驗；state 在 ext4 |
 | CI 設定 | Ubuntu 24.04、Windows Server 2022 core；Ubuntu Compose，workflow 已靜態驗證，hosted run 尚未執行 |
-| 正式常駐服務資源 | 各 1 CPU／512 MiB／128 PIDs、唯讀 rootfs；tmpfs `/tmp` 64 MiB、`/run/filehub` 1 MiB；API host loopback 8088，worker 不開 port |
+| 正式常駐服務資源 | 各 1 CPU／512 MiB／128 PIDs、唯讀 rootfs；tmpfs `/tmp` 64 MiB、`/run/filehub` 1 MiB；API 預設發布主機 `0.0.0.0:8088`，worker 不開 port |
 | 測試 CI 容器 | 2 CPU／2 GiB／512 PIDs／256 MiB shm；單 browser worker，可寫自有容器層；不是壓力／容量基準 |
 | P3 容量 fixture | 正式 image、1 CPU／512 MiB、UID 1000、唯讀 rootfs／drop ALL／network none；專屬 8 MiB shm、16 MiB state／tmp tmpfs，沒有主機掛載 |
 | 關閉與等待 | Compose stop grace 20 秒／app 5 秒；測試子程序等待 8 秒、緊急停止 2 秒；不能搶占同步 SQLite 或核心 I/O |
