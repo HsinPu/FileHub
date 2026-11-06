@@ -97,6 +97,7 @@ P7.1–P7.9 已完成殼層、工具列、搜尋、選取、導覽、設定、�
 - P1.2 `EntryService` 每次查帳號／entry／grant，對外只有公開 DTO；root／祖先 identity、state 與重疊保護在私有 service。所有 symlink 先拒絕；正式 Linux 的 scoped storage 使用 pinned fd／O_NOFOLLOW，Windows 為已驗一般替換的開發路徑。FS owner／handle 關閉與平台限制依 P1 決策，不能以字串 prefix 或 Windows 測試宣稱完整隔離。
 - API／worker 共用本機 state 目錄與 SQLite WAL；DB／WAL／SHM 不放 NAS／NFS／SMB。工作與資源協調使用持久紀錄、短交易及有界 busy handling，不能只靠程序內鎖；檔案複製不持有長 DB 交易。
 - 兩服務使用同一 image 版本／digest、相容的掛載路徑與必要身份。Compose 固定 UID/GID 1000、唯讀 rootfs、drop ALL、同 local state／files／cache volumes；外部掛載範例預設唯讀、不自動 mkdir／chown。migration 成功 gate 不能代替升級前的兩服務停機；備份須保持 DB 與必要檔案狀態一致並驗還原。
+- 部署文件的 Compose 改埠範例需同步提供 `FILEHUB_HTTP_PORT`、相符的 `FILEHUB_PUBLIC_ORIGIN` 與瀏覽器網址。跨機登入使用 HTTPS 反向代理並設定對應的 HTTPS 來源。
 - Worker `main` 為 async，呼叫端須 await。Compose 在私有 tmpfs 發布原子 heartbeat，外部健康檢查核對 idle／ready、freshness、PID／Linux starttime 與 DB；它不是持久工作 lease。unhealthy 不等於自動重啟，沒有搶占同步／核心 I/O 的保證。
 - Vitest projects 分開收集，suite 最多 2 workers；`pnpm check` 核對 metadata／typecheck／lint，完整 build 一次後跑原生測試，不要求 Docker／瀏覽器。`verify:core` 加 Chromium，`verify:p0` 再建正式 image 並跑 Compose；獨立 `test:integration` 也先 build，`:run` 命令要求已有產物。缺少 browser／Docker／image 直接失敗，不 skip。
 - `tests/helpers/` 的目錄／子程序／環境 helpers 不依賴 runner；建立者先關閉資源，再核對 realpath、device／inode／非 symlink 清理自己的目錄，拒絕後保留現場。子程序等待 8 秒、緊急停止 2 秒，只終止自身 child；Compose 核對唯一 token，不 prune。Windows callbacks、Linux OS signal 與各瀏覽器平台分開報告。

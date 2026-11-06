@@ -2,6 +2,10 @@
 
 > 驗證報告與原始擷取保留本機，未隨原始碼發佈；文中「本機」路徑僅作歷史定位，不能視為新 checkout 已有的證據。
 
+## Compose 連接埠與登入
+
+- Compose 的預設 `FILEHUB_PUBLIC_ORIGIN` 固定為 `http://127.0.0.1:8080`。修改主機埠時也要更新 origin，因為登入驗證瀏覽器的 Origin，而 `/health/ready` 可獨立通過。設定驗證允許 loopback HTTP，跨機使用 HTTPS 來源。安裝範例見 [README](README.md#使用-docker-compose-啟動)。
+
 ## 原始碼發佈與測試產物
 
 - 2026-11-05 使用者定案保留測試原始碼，只排除截圖、log、驗證報告等產物，並明確授權最後修正與乾淨快照一併上 `main`。`tests/`、`apps/server/tests/`、`apps/web/tests/` 及必要 fixture 保留；不要用圖片／文件副檔名刪除必要測試資料、Logo、字型或授權。`.gitignore` 不能清掉舊 commit；原開發歷史留本機 `codex/development-history-2026-11-05`，乾淨快照由 `main` 接續，不混回原歷史。移除索引前保存精確清單及 hash，保持本機 bytes 不變；遠端未成功刷新時不能宣稱目前內容已核對。規則見 [source-publication](docs/operations/source-publication.md)。

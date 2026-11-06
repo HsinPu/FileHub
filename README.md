@@ -30,13 +30,22 @@ FileHub 是自行部署的網頁檔案管理工具，支援內建儲存與已掛
 
 ## 環境需求
 
+- Git，用於下載 FileHub 原始碼。
 - Docker Linux／amd64 backend 與支援 `up --wait` 的 Compose plugin。
 - SQLite state 使用主機本機檔案系統，**DB／WAL／SHM 不可放 NAS、NFS 或 SMB**；外部檔案來源先由主機掛載。
 - 原生開發使用 Node.js **24.22.1**、pnpm **12.16.0**。Linux 原生 build 另需 C11 compiler 與 libc headers；Docker builder 已包含。
 
 ## 使用 Docker Compose 啟動
 
-在儲存庫根目錄將 [.env.example](.env.example) 複製為 `.env`，確認使用範例的容器設定，再執行：
+首次安裝時，在新機下載 `main` 並從範例建立 `.env`。
+
+```shell
+git clone --branch main https://github.com/HsinPu/FileHub.git
+cd FileHub
+cp .env.example .env
+```
+
+以下指令使用預設埠 8080。如需改埠，先修改 `.env`，並更新最後一行的健康檢查網址。詳見[設定](#設定)。
 
 ```shell
 docker compose config --quiet
@@ -46,7 +55,7 @@ docker compose ps -a
 curl --fail http://127.0.0.1:8080/health/ready
 ```
 
-這會從原始碼建置本機 `filehub:0.40.18`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。預設網址是 [http://127.0.0.1:8080/](http://127.0.0.1:8080/)；埠被占用時設定 `FILEHUB_HTTP_PORT=8088`，網址改為 [http://127.0.0.1:8088/](http://127.0.0.1:8088/)。
+這會從原始碼建置本機 `filehub:0.40.18`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟預設網址 [http://127.0.0.1:8080/](http://127.0.0.1:8080/)。
 
 初次安裝**沒有預設帳密**。在互動終端建立管理員，密碼由隱藏提示輸入，至少 15 字元：
 
@@ -69,10 +78,19 @@ docker compose stop api worker
 | --- | --- |
 | `FILEHUB_IMAGE` | `filehub:0.40.18`，三角色共用同一版本 |
 | `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT` | Compose 綁定 `127.0.0.1:8080` |
-| `FILEHUB_PUBLIC_ORIGIN` | 反向代理或公開 HTTPS 網址須明確設定正確 origin |
+| `FILEHUB_PUBLIC_ORIGIN` | 預設 `http://127.0.0.1:8080`，須與瀏覽器使用的協定、主機及埠相符 |
 | `FILEHUB_STATE_DIR` | 原生為執行目錄的 `state`；Compose 預設 `/data/state` |
 | `FILEHUB_EXTERNAL_SOURCE`／`FILEHUB_EXTERNAL_READ_ONLY` | 外部掛載範例，預設唯讀 |
 | `FILEHUB_LOG_LEVEL` | `info`；避免輸出帳密、Cookie 或使用者檔案內容 |
+
+如果 8080 已被占用，請在 `.env` 同時設定以下兩項，再使用 [http://127.0.0.1:8088/](http://127.0.0.1:8088/)。
+
+```dotenv
+FILEHUB_HTTP_PORT=8088
+FILEHUB_PUBLIC_ORIGIN=http://127.0.0.1:8088
+```
+
+從另一台電腦連線時，可在部署主機使用 HTTPS 反向代理，轉發到 `127.0.0.1:8080` 或實際設定的埠。將 `FILEHUB_PUBLIC_ORIGIN` 設成瀏覽器所用的 HTTPS 來源，例如 `https://files.example.com`。詳見[帳號與登入來源](docs/operations/identity.md#同源設定與-http-契約)。
 
 完整設定見 [.env.example](.env.example) 與[部署操作](docs/operations/deployment.md)。外部目錄使用 [compose.mounts.example.yaml](compose.mounts.example.yaml)，API／worker 必須有一致掛載；不自動建立來源目錄或遞迴修改權限。
 
