@@ -26,7 +26,7 @@
 | state | `local` named volume → `/data/state`，DB／WAL／SHM 同目錄；預設無 driver options，禁止改為 NFS／CIFS volume |
 | 內建原檔／cache | 分別為 `files:/data/files`、`cache:/data/cache`，兩服務掛相同 volume 與路徑；產品操作仍待後續階段 |
 | 暫存 | 每容器獨立 tmpfs：`/tmp` 64 MiB、`/run/filehub` 1 MiB（UID/GID 1000、0700）；其容量計入容器記憶體限制 |
-| 網路 | API 容器內 `0.0.0.0:3000`，主機預設只綁 `127.0.0.1:8080`；worker 不發布埠 |
+| 網路 | API 容器內 `0.0.0.0:3000`，主機預設只綁 `127.0.0.1:8088`。預設登入來源跟隨主機埠，worker 不發布埠 |
 | 外部目錄 | `compose.mounts.example.yaml` 以相同 Linux source／`/mounts/example` 掛入兩服務，預設唯讀，不自動建立缺少的主機目錄 |
 
 tmpfs 隨容器停止移除，不能保存工作或當作共享儲存。[Docker tmpfs](https://docs.docker.com/engine/storage/tmpfs/)

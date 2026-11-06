@@ -114,6 +114,8 @@ export async function composeFixture() {
       }));
       const environment = childEnvironment({
         FILEHUB_IMAGE: options.image??image, FILEHUB_HTTP_PORT: '0', FILEHUB_BIND_ADDRESS: '127.0.0.1',
+        // HTTP 測試用固定的合成 Origin，與 Docker 分配的主機埠分開。
+        FILEHUB_PUBLIC_ORIGIN: 'http://127.0.0.1:8080',
         FILEHUB_STATE_DIR: options.stateDirectory ?? '/data/state',
         FILEHUB_LOG_LEVEL: 'info', COMPOSE_CONVERT_WINDOWS_PATHS: '0',
         FILEHUB_UPLOAD_MAINTENANCE_INTERVAL_MS: '1000',

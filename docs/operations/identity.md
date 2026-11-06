@@ -29,7 +29,7 @@ docker compose exec api node apps/server/dist/cli.js user-disable reader
 ## 同源設定與 HTTP 契約
 
 - 原生 loopback 未指定時，以設定 host／實際 socket port 驗證 Origin。使用開發 proxy 時，明確將 `FILEHUB_PUBLIC_ORIGIN` 設為瀏覽器 origin。
-- Compose 預設 `http://127.0.0.1:8080`；反向代理須設定完整 HTTPS origin，例如 `https://files.example.com`，不能帶結尾 `/`、路徑或帳密。代理須正確提供 HTTPS；本服務不直接供應 TLS。
+- Compose 預設 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。反向代理須設定完整 HTTPS origin，例如 `https://files.example.com`，不能帶結尾 `/`、路徑或帳密。HTTPS 由代理提供。
 - HTTP 僅支援 loopback 開發；HTTPS origin 發 Secure Cookie。請求提供偽造 Host／X-Forwarded headers 不會改變信任 origin。
 - `POST /api/session` 接 JSON username／password 並要求同源 Origin；成功回公開 user、csrfToken、expiresAt，session 僅由 HttpOnly Cookie 傳送。
 - `GET /api/session` 取得目前 session；401 需重新登入。`DELETE /api/session` 另要求同源 Origin 與 `X-CSRF-Token`，成功 204；舊 Cookie 重播失敗。

@@ -48,8 +48,8 @@ FILEHUB_IMAGE=filehub:0.40.16
 FILEHUB_RECOVERY_VOLUME=filehub_recovery
 FILEHUB_STATE_DIR=/data/backups/recovered/state
 FILEHUB_BIND_ADDRESS=127.0.0.1
-FILEHUB_HTTP_PORT=8080
-FILEHUB_PUBLIC_ORIGIN=http://127.0.0.1:8080
+FILEHUB_HTTP_PORT=8088
+FILEHUB_PUBLIC_ORIGIN=http://127.0.0.1:8088
 ```
 
 使用全新 project 與[還原 override](../../compose.restore.example.yaml)，三角色都保留還原時的 `/data/backups` 路徑。此時所有原入口都在 recovery volume 的副本，不需把舊外部原檔重新掛回。
@@ -58,7 +58,7 @@ FILEHUB_PUBLIC_ORIGIN=http://127.0.0.1:8080
 docker compose -p filehub-recovered --env-file .env.restore -f compose.yaml -f compose.restore.example.yaml config --quiet
 docker compose -p filehub-recovered --env-file .env.restore -f compose.yaml -f compose.restore.example.yaml up -d --wait --wait-timeout 45 api worker
 docker compose -p filehub-recovered --env-file .env.restore -f compose.yaml -f compose.restore.example.yaml ps -a
-curl --fail http://127.0.0.1:8080/health/ready
+curl --fail http://127.0.0.1:8088/health/ready
 ```
 
 重新登入後核對帳號、grant、內建／外部入口的檔案 bytes、垃圾桶與 ZIP；重新解鎖分享。未完成工作在工作面板檢查，不將 needs_review 手改成 queued；未知 reservation 保留待分析。上傳經維護驗 prefix 後才可重新選檔續傳，維護本身不發布。cache 從空狀態重建。

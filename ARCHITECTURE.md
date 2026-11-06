@@ -237,7 +237,7 @@ Drizzle Kit 在開發階段由 TypeScript schema 產生 SQL／migration metadata
 
 SQLite 備份使用其 online backup 機制，或在兩服務與其他 DB 寫入者皆停止後取得一致副本；不得只複製仍在使用中的 `.db`，也不手動刪除 WAL／SHM。DB 備份不等於檔案內容備份，整體還原另包含必要設定、內建檔案及外部目錄；若外部程式仍在寫入，須另確保儲存端的一致性。P0 建立 DB 還原 smoke，功能階段補齊工作與檔案狀態恢復驗證。[SQLite backup API](https://sqlite.org/backup.html)
 
-P0.5 使用固定 digest 的 Debian Bookworm／amd64 image，三角色 UID/GID 1000、read-only rootfs、drop ALL、no-new-privileges；每角色 512 MiB／1 CPU／128 PIDs。API 預設僅發布主機 loopback 8080，worker heartbeat 位於各容器私有 `/run/filehub` tmpfs；不能用連 DB 成功替代循環 freshness。外部入口健康依後續模型獨立呈現，不把一個 NFS 離線等同整個服務死亡。
+P0.5 使用固定 digest 的 Debian Bookworm／amd64 image，三角色 UID/GID 1000、read-only rootfs、drop ALL、no-new-privileges；每角色 512 MiB／1 CPU／128 PIDs。API 預設僅發布主機 loopback 8088，登入來源隨主機埠設定。worker heartbeat 位於各容器私有 `/run/filehub` tmpfs；不能用連 DB 成功替代循環 freshness。外部入口健康依後續模型獨立呈現，不把一個 NFS 離線等同整個服務死亡。
 
 [P6.3 完整維護](docs/decisions/P6-maintenance.md)提供 Linux filehub-full-v1 快照及全新目標還原，包含設定、所有入口及必要 state；停機 flock 與 owner guard proof 共同檢查，外部寫入仍需停寫。可攜還原重綁實體識別，未完成工作不重播；--preserve-schema 供舊快照搭配原 image 回復。DB-only CLI 仍是較窄的管理資料工具。[部署決策](docs/decisions/P0-deployment.md)、[可執行操作](docs/operations/deployment.md)、實測平台／限制（本機 `docs/validation/P0.5.md`）記錄固定 digest、掛載、健康與回復範圍；Docker Desktop 的結果不擴大為裸機或真實 NFS 故障保證。
 

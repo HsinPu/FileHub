@@ -10,15 +10,17 @@
 
 在儲存庫根目錄複製 `.env.example` 為 `.env`，確認 image／主機埠。Compose 不使用原生開發的 `FILEHUB_HOST`／`FILEHUB_PORT`，容器內固定 `0.0.0.0:3000`；主機用 `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT`。若原生 `.env` 有自訂 Windows `FILEHUB_STATE_DIR`，部署時改用獨立 env file 的 Linux 容器路徑。未設定時使用 `/data/state`。
 
+主機預設綁定 `127.0.0.1:8088`，預設登入來源隨 `FILEHUB_HTTP_PORT` 調整。使用 HTTPS 反向代理時，請明確設定 `FILEHUB_PUBLIC_ORIGIN` 為瀏覽器的 HTTPS 來源。
+
 ```shell
 docker compose config --quiet
 docker compose build migrate
 docker compose up -d --wait --wait-timeout 45 api worker
 docker compose ps -a
-curl --fail http://127.0.0.1:8080/health/ready
+curl --fail http://127.0.0.1:8088/health/ready
 ```
 
-預期 `migrate` Exited (0)，API／worker 都 healthy，HTTP 回 `{"status":"ready"}`；`http://127.0.0.1:8080/` 提供登入／工作空間，`/?view=status` 為公開服務概覽。首次 named volumes 由 image 準備 UID/GID 1000 的空目錄權限；不會修復既有 volume 的錯誤 owner。`FILEHUB_IMAGE` 預設 `filehub:0.40.18`，建置一次給三角色使用。若指定已發布的 registry digest，先自行 pull 該 digest，再直接 up，勿用 digest 作 build tag。
+預期 `migrate` Exited (0)，API／worker 都 healthy，HTTP 回 `{"status":"ready"}`。`http://127.0.0.1:8088/` 提供登入／工作空間，`/?view=status` 為公開服務概覽。首次 named volumes 由 image 準備 UID/GID 1000 的空目錄權限；不會修復既有 volume 的錯誤 owner。`FILEHUB_IMAGE` 預設 `filehub:0.40.18`，建置一次給三角色使用。若指定已發布的 registry digest，先自行 pull 該 digest，再直接 up，勿用 digest 作 build tag。
 
 檢查三角色 `docker inspect` 的 `.Image` 相同、`.Config.User` 均 `1000:1000`，及兩服務 state 的 `.Mounts` 指向相同 named volume。無 override 時為 `filehub_state`、`filehub_files`、`filehub_cache`。主機預設僅 loopback；是否對外發布依後續部署需求另行處理。
 
@@ -76,7 +78,7 @@ docker compose ps -a
 FILEHUB_IMAGE=filehub:0.40.18
 FILEHUB_STATE_DIR=/data/state/restored
 FILEHUB_BIND_ADDRESS=127.0.0.1
-FILEHUB_HTTP_PORT=8080
+FILEHUB_HTTP_PORT=8088
 ```
 
 下列 `create migrate` 只準備容器與新 mount 根目錄，不執行 migration；restore 建立全新的 `restored` 子目錄。備份 volume 只讀掛入。
@@ -86,7 +88,7 @@ docker compose -p filehub-restore --env-file .env.restore create migrate
 docker compose -p filehub-restore --env-file .env.restore run --rm --no-deps -v filehub_backups:/data/backups:ro migrate apps/server/dist/db-maintenance.js restore /data/backups/before-upgrade/filehub.db
 docker compose -p filehub-restore --env-file .env.restore up -d --wait --wait-timeout 45 api worker
 docker compose -p filehub-restore --env-file .env.restore ps -a
-curl --fail http://127.0.0.1:8080/health/ready
+curl --fail http://127.0.0.1:8088/health/ready
 ```
 
 預期兩服務 healthy，並核對應有資料。若目錄已存在，restore 拒絕覆寫；請改用另一個全新 project／目錄。後續所有命令持續使用相同 project 與 env file，勿又切回根 `.env` 的 state 路徑。原 volume、原檔與快照保留供檢查，不手動刪 WAL／SHM。

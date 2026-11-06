@@ -36,7 +36,7 @@ docker compose ps -a
 
 ## 設定與資料位置
 
-本機 `.env` 已被 Git 忽略，設定 `FILEHUB_STATE_DIR=/data/state`、`FILEHUB_HTTP_PORT=8088`、`FILEHUB_BIND_ADDRESS=127.0.0.1` 及 `FILEHUB_PUBLIC_ORIGIN=http://127.0.0.1:8088`。Compose 範本的預設埠仍是 8080；這個工作站使用獨立的 8088。
+本機 `.env` 已被 Git 忽略，設定 `FILEHUB_STATE_DIR=/data/state`、`FILEHUB_HTTP_PORT=8088`、`FILEHUB_BIND_ADDRESS=127.0.0.1` 及 `FILEHUB_PUBLIC_ORIGIN=http://127.0.0.1:8088`。現行 Compose 範本也預設使用 8088。
 
 `FILEHUB_IMAGE` 固定為已驗收 image ID `sha256:db75910c7052b1b57ac6b105673194c800a70c855b9492e15ddb302cbe9595cc`；本機試用直接啟動既有 image，使用 `--no-build`。升級及更換 image 前依[完整備份流程](full-backup.md)停機、備份及驗還原。
 
