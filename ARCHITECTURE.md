@@ -148,6 +148,20 @@ API 領域參考[改寫藍圖](docs/filebrowser-study/07-filehub-rewrite-bluepri
 
 所有檔案入口走相同路徑正規化、來源／目的地授權、symlink／junction 與實體範圍檢查。檢查與實際 I/O 間仍有競態，必須依支援平台和本機威脅模型選擇策略並實測；不能宣稱字串 prefix 檢查已提供完整隔離。
 
+### 5.1 遠端 FileHub 瀏覽需求
+
+2026-11-09 使用者確認 B 使用瀏覽器登入 A，從 A 的同一個介面瀏覽 A 與 C 的資料夾及檔案清單，C 也安裝 FileHub。A 提供整合入口，C 的 FileHub 提供遠端檔案來源。
+
+```mermaid
+flowchart LR
+    B["B 的瀏覽器"] --> A["A 的 FileHub"]
+    A --> AFiles["A 的檔案"]
+    A --> C["C 的 FileHub"]
+    C --> CFiles["C 的檔案"]
+```
+
+圖表示瀏覽請求的邏輯流程。服務間的連線、來源註冊、身分與授權對應、撤銷、斷線及資料契約待設計，目前 `0.41.0` 尚未提供遠端 FileHub 入口。P11 的需求、後續規劃及狀態統一放在[主計畫](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)。下載、預覽、寫入及同步的需求範圍待確認。
+
 ## 6. 同步操作與背景工作
 
 worker 同步檢查正式 DB readiness，預設每 1000ms 一輪，可設定 50–60000ms。初始未就緒即失敗；執行中未就緒轉 unavailable，恢復後回 idle。Linux 在就緒時另按 60000ms 預設間隔進行有界上傳維護，每批最多四筆，詳見 [P3.4](docs/decisions/P3-upload-maintenance.md)。info 記狀態變化、debug 記每輪；Compose 將狀態原子發布到私有 tmpfs，healthcheck 核對 freshness、PID／starttime 與 DB。P5.1 加入獨立 operation executor，借用 worker 原連線；heartbeat 不等於持久工作 lease，詳細狀態／限制見 [P5 決策](docs/decisions/P5-operations.md)。

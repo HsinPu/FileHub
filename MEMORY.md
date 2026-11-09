@@ -2,6 +2,10 @@
 
 > 驗證報告與原始擷取保留本機，未隨原始碼發佈；文中「本機」路徑僅作歷史定位，不能視為新 checkout 已有的證據。
 
+## 遠端 FileHub 瀏覽需求
+
+- 2026-11-09 使用者明確定義 B 為瀏覽器電腦，A 與 C 均安裝 FileHub。B 登入 A 後，透過 A 的同一介面瀏覽 A 與 C 的資料夾及檔案清單。此需求記於[主計畫 P11](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)，狀態為未開始，連線、來源註冊及授權設計待規劃。目前 entries 的 `managed`／`external` 契約處理本機實體根目錄，P10.8 的跨機登入不代表遠端 FileHub 入口已實作。
+
 ## Compose 連接埠與登入
 
 - Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際瀏覽器來源，內網 HTTP 必須明確啟用 `FILEHUB_ALLOW_LAN_HTTP=true`。`FILEHUB_PUBLIC_ORIGIN` 只填協定、主機與埠。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。

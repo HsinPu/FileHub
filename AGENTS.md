@@ -6,6 +6,8 @@
 
 P0–P10 共 70 份工作已完成，目前程式版本 `0.41.0`／schema 13。P10.8 新增內網 HTTP 與 `/FileHub/`，已驗原生核心、Chromium 及隔離 Compose，包含 Linux 瀏覽器分段上傳（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，歷史版本與完整進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入、Windows 開發唯讀，未驗環境依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
+2026-11-09 使用者確認 P11 的遠端 FileHub 瀏覽需求，B 為瀏覽器電腦，A 與 C 均安裝 FileHub，B 登入 A 後在同一介面瀏覽 A 與 C 的資料夾及檔案清單。需求已記入主計畫與架構，連線、授權及實作子工作待規劃。P11 狀態為未開始。
+
 2026-11-01 使用者要求準備驗收並比對原始計畫，對照與操作清單見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。原始 33 項及後續定案契約分開核對；程式存在、歷史證據完整、目前測試通過及實際 8088 交付是不同判定，不能合併成「全部完成」。
 
 2026-11-04 的[正式驗收狀態與待辦](docs/reviews/acceptance-status-2026-11-04.md)為目前簽收入口，列明 F01–F10 能力邊界、E01–E07 未驗環境及 U01–U13 人工項目。工程結案與 8088 交付不代替使用者簽收；正式 Linux／NAS、資料容量及備份安排依實際用途補驗。新增需求或缺陷仍回主計畫，不另維護第二套工程進度。
@@ -23,7 +25,7 @@ P0–P10 共 70 份工作已完成，目前程式版本 `0.41.0`／schema 13。P
 - 回答、文件與產品文案使用繁體中文（台灣用語）。
 - 每次任務先閱讀本檔、`MEMORY.md`、`README.md`；實作前另讀 `IMPLEMENTATION_PLAN.md`、`ARCHITECTURE.md` 與 `CONTRIBUTING.md`，涉及介面時另讀 `DESIGN.md`。
 - 參考來源為 `C:\Users\win10\Desktop\Github\filebrowser`；分析時保持來源不變，驗證使用指定 commit 的隔離副本。
-- 根目錄 `IMPLEMENTATION_PLAN.md` 是後續實作的主計畫與進度依據，列出 P0–P10 的工作編號、修改位置、參考原碼及驗收。依使用者已授權階段與下一個未完成工作接續；每份更新狀態與 `docs/validation/<工作編號>.md`，以工作編號 commit，不自行跳過前置驗證。
+- 根目錄 `IMPLEMENTATION_PLAN.md` 是後續實作的主計畫與進度依據，列出已完成 P0–P10 的工作編號、修改位置、參考原碼及驗收，以及待規劃的 P11 需求。依使用者已授權階段與下一個未完成工作接續；每份更新狀態與 `docs/validation/<工作編號>.md`，以工作編號 commit，不自行跳過前置驗證。
 - 架構與流程以 `ARCHITECTURE.md`、`CONTRIBUTING.md` 為依據；`docs/filebrowser-study/07-filehub-rewrite-blueprint.md` 保存行為需求與階段概覽，不另維護第二套工作進度。01–06 為來源研究，證據在該目錄的 `evidence/`；保留固定 commit、行號、REA Evidence ID 與驗證條件。
 - `docs/toolchain-recommendation.md` 保存已確認工具鏈；工程與功能決策在 `docs/decisions/`，驗證在 `docs/validation/`，最新版本／進度依 README／主計畫。操作見 `docs/operations/`。UI 規範見 DESIGN；本機 Windows／Debian Chromium 與 Docker Desktop 結果不代表 GitHub hosted jobs、其他瀏覽器、裸機或真實網路掛載已驗證。
 - 明確區分來源已確認行為、隔離環境實測、推論與 FileHub 設計建議。靜態分析不能當作執行結果。

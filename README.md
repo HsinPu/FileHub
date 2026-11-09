@@ -142,6 +142,8 @@ Linux 首次安裝瀏覽器改用 `node scripts/playwright.mjs install --with-de
 
 單檔上傳上限 1 GiB；搜尋有深度、掃描與結果上限；ZIP 為 STORE 打包並有容量及到期限制。垃圾桶提供還原，尚未提供永久清空；未提供目錄樹、檔案內容編輯、session 自動續期或舊 Python 資料庫匯入。預覽不執行 HTML／SVG／Markdown 內容。
 
+已確認後續需要讓瀏覽器 B 登入 A 的 FileHub，透過 A 的同一介面瀏覽 A 與另一台 FileHub 主機 C 的檔案。此遠端來源功能狀態為未開始，需求及後續規劃見[主計畫 P11](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)。
+
 Docker Desktop 與指定 NFSv3 唯讀故障 fixture 的結果不代表所有實體 Linux、NAS、NFS／SMB 寫入或瀏覽器皆已驗證。正式使用前仍須依實際資料量、掛載、備份安排與[人工驗收清單](docs/reviews/acceptance-status-2026-11-04.md)確認；工程交付不代替使用者簽收。
 
 ## 貢獻與問題回報
