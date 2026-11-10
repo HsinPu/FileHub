@@ -4,7 +4,7 @@
 
 ## 遠端 FileHub 瀏覽需求
 
-- 2026-11-09 使用者明確定義 B 為瀏覽器電腦，A 與 C 均安裝 FileHub。B 登入 A 後，透過 A 的同一介面瀏覽 A 與 C 的資料夾及檔案清單。此需求記於[主計畫 P11](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)，狀態為未開始，連線、來源註冊及授權設計待規劃。目前 entries 的 `managed`／`external` 契約處理本機實體根目錄，P10.8 的跨機登入不代表遠端 FileHub 入口已實作。
+- 2026-11-09 使用者明確定義 B 為瀏覽器電腦，A 與 C 均安裝 FileHub。B 登入 A 後，透過 A 的同一介面瀏覽 A 與 C 的資料夾及檔案清單。2026-11-10 授權建立目標並實作，依[主計畫 P11](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)與[遠端瀏覽決策](docs/decisions/P11-remote-browsing.md)接續。第一版重用 C 的資料夾分享授權，A 以私有檔案註冊來源、固定 IP 與 A 帳號範圍。schema 13 沿用，瀏覽以外的能力另待需求確認。
 
 ## Compose 連接埠與登入
 
