@@ -2,11 +2,12 @@
 
 FileHub 是自行部署的網頁檔案管理工具，支援內建儲存與已掛載的外部資料夾。使用瀏覽器管理檔案、分享內容與追蹤背景工作；檔案本體保留在檔案系統，SQLite 只保存管理資料。
 
-目前版本 **0.42.1**，資料庫 schema **13**。正式部署目標是單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
+目前版本 **0.42.2**，資料庫 schema **13**。每套 FileHub 部署在單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
 
 ## 主要功能
 
 - 帳號登入、管理員／成員權限、儲存入口與子目錄授權。
+- 透過 A 的同一介面瀏覽 A 與遠端 FileHub C 的授權資料夾、檔案清單。
 - 詳細列表、圖磚、圖庫、排序、分頁、名稱篩選與有界遞迴搜尋。
 - 單檔下載、安全圖片／純文字／PDF 第一頁預覽。
 - Linux 上的新建資料夾、改名、垃圾桶與還原、分段上傳及重新選檔續傳。
@@ -55,7 +56,7 @@ docker compose ps -a
 curl --fail http://127.0.0.1:8088/FileHub/health/ready
 ```
 
-這會從原始碼建置本機 `filehub:0.42.1`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟 [http://127.0.0.1:8088/FileHub/](http://127.0.0.1:8088/FileHub/)。
+這會從原始碼建置本機 `filehub:0.42.2`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟 [http://127.0.0.1:8088/FileHub/](http://127.0.0.1:8088/FileHub/)。
 
 初次安裝**沒有預設帳密**。在互動終端建立管理員，密碼由隱藏提示輸入，至少 15 字元：
 
@@ -76,10 +77,11 @@ docker compose stop api worker
 
 | 設定 | 預設／用途 |
 | --- | --- |
-| `FILEHUB_IMAGE` | `filehub:0.42.1`，三角色共用同一版本 |
+| `FILEHUB_IMAGE` | `filehub:0.42.2`，三角色共用同一版本 |
 | `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT` | 預設 `0.0.0.0:8088`，讓 FileHub 在主機的 IPv4 網路介面接收連線 |
 | `FILEHUB_PUBLIC_ORIGIN` | 本機預設為 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。從其他電腦登入時設定實際使用的協定、主機與埠 |
 | `FILEHUB_ALLOW_LAN_HTTP` | 預設 `false`。在受信任內網使用 HTTP 登入時設定 `true` |
+| `FILEHUB_REMOTE_SOURCES_PATH` | 選配 Compose 覆寫檔使用的私有來源 JSON 主機路徑，設定見[遠端瀏覽](docs/operations/remote-browsing.md) |
 | `FILEHUB_STATE_DIR` | 原生為執行目錄的 `state`；Compose 預設 `/data/state` |
 | `FILEHUB_EXTERNAL_SOURCE`／`FILEHUB_EXTERNAL_READ_ONLY` | 外部掛載範例，預設唯讀 |
 | `FILEHUB_REMOTE_SOURCES_FILE` | 原生 API 的私有遠端 FileHub 來源 JSON。Compose 選配掛載使用 `FILEHUB_REMOTE_SOURCES_PATH` |
@@ -92,7 +94,7 @@ docker compose stop api worker
 在 `.env` 設定以下內容，並把 `192.168.1.10` 換成 FileHub 主機的內網 IP。`FILEHUB_PUBLIC_ORIGIN` 填協定、主機和埠，`/FileHub/` 加在瀏覽器網址上。
 
 ```dotenv
-FILEHUB_IMAGE=filehub:0.42.1
+FILEHUB_IMAGE=filehub:0.42.2
 FILEHUB_BIND_ADDRESS=0.0.0.0
 FILEHUB_HTTP_PORT=8088
 FILEHUB_ALLOW_LAN_HTTP=true
@@ -144,7 +146,7 @@ Linux 首次安裝瀏覽器改用 `node scripts/playwright.mjs install --with-de
 
 單檔上傳上限 1 GiB；搜尋有深度、掃描與結果上限；ZIP 為 STORE 打包並有容量及到期限制。垃圾桶提供還原，尚未提供永久清空；未提供目錄樹、檔案內容編輯、session 自動續期或舊 Python 資料庫匯入。預覽不執行 HTML／SVG／Markdown 內容。
 
-已確認後續需要讓瀏覽器 B 登入 A 的 FileHub，透過 A 的同一介面瀏覽 A 與另一台 FileHub 主機 C 的檔案。此遠端來源功能正在實作，契約與進度見[主計畫 P11](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)及[遠端瀏覽決策](docs/decisions/P11-remote-browsing.md)。
+遠端瀏覽讓 B 只登入 A，從 A 切換本機與 C 的清單，支援資料夾導覽、三種檢視、排序、分頁及目前目錄名稱篩選。管理員在 C 建立無密碼的資料夾分享，再設定 A 的私有來源檔案；授權最長 30 天，撤銷或到期即停止存取。目前遠端入口不提供下載、預覽、寫入、垃圾桶、遞迴搜尋或跨機同步。設定步驟見[遠端瀏覽](docs/operations/remote-browsing.md)，工程進度見[主計畫 P11](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)。
 
 Docker Desktop 與指定 NFSv3 唯讀故障 fixture 的結果不代表所有實體 Linux、NAS、NFS／SMB 寫入或瀏覽器皆已驗證。正式使用前仍須依實際資料量、掛載、備份安排與[人工驗收清單](docs/reviews/acceptance-status-2026-11-04.md)確認；工程交付不代替使用者簽收。
 

@@ -5,7 +5,7 @@
 ## 留在本機的資料
 
 - `.tools/`、`.agents/`、`.codex/` 等本機工具與私人設定。
-- `.env`、資料庫及其 WAL／SHM、備份、私鑰與實際使用者檔案；僅提交無秘密的 `.env.example`。
+- `.env`、`remote-sources.json`、資料庫及其 WAL／SHM、備份、私鑰與實際使用者檔案；僅提交無秘密的 `.env.example` 與 `remote-sources.example.json`。
 - `node_modules/`、`dist/`、`apps/web/build/`、原生編譯產物及 coverage。
 - `test-results/`、`playwright-report/`、log、`docs/validation/` 的階段驗證報告及執行證據。
 - `docs/design/*/evidence/`、`docs/reviews/filebrowser-visual-reference/` 與研究目錄的原始擷取包。`docs/filebrowser-study/evidence/filebrowser-LICENSE.txt` 是保留的授權例外。

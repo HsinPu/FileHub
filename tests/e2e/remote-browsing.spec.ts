@@ -1,5 +1,5 @@
 import { test, expect } from './remote-fixtures.js';
-import { chooseStorage, login, searchInput } from './actions.js';
+import { chooseStorage, goPath, login, searchInput } from './actions.js';
 
 test('B 只登入 A，在同一介面切換 A／C、巢狀目錄、三檢視及名稱篩選', async ({ page, pair }, info) => {
   const origins = new Set<string>(), errors: string[] = [];
@@ -23,6 +23,18 @@ test('B 只登入 A，在同一介面切換 A／C、巢狀目錄、三檢視及�
   await expect(page.getByText('遠端報告.txt', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('遠端報告.txt', { exact: true })).toBeVisible();
+  await chooseStorage(page, 'C 的檔案');
+  await goPath(page, '大量檔案');
+  await expect(page.getByText('55 個項目', { exact: true })).toBeVisible();
+  await page.getByRole('listitem', { name: '2', exact: true }).click();
+  await expect(page).toHaveURL(/page=2&version=[a-f0-9]{64}/);
+  await expect(page.getByText('item-54.txt', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('item-54.txt', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '排序選項', exact: true }).click();
+  await page.getByRole('menuitem', { name: '改為遞減', exact: true }).click();
+  await expect(page.getByText('item-05.txt', { exact: true })).toBeVisible();
+  await expect(page.getByText('item-00.txt', { exact: true })).toHaveCount(0);
   await chooseStorage(page, 'C 的檔案');
   await (await searchInput(page)).fill('C-note');
   await expect(page.getByRole('option', { name: '包含子目錄', exact: true })).toBeDisabled();

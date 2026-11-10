@@ -25,7 +25,7 @@ export interface Container {
   State: { Status: string; Running: boolean; ExitCode: number; OOMKilled: boolean; StartedAt: string; Health?: { Status: string } };
   HostConfig: { ReadonlyRootfs: boolean; CapDrop: string[]; SecurityOpt: string[]; Memory: number; PidsLimit: number };
   Mounts: { Type: string; Name?: string; Source: string; Destination: string; RW: boolean }[];
-  NetworkSettings: { Ports: Record<string, { HostIp: string; HostPort: string }[] | null> };
+  NetworkSettings: { Ports: Record<string, { HostIp: string; HostPort: string }[] | null>; Networks: Record<string, { IPAddress: string }> };
 }
 
 export async function inspect(id: string): Promise<Container> {
@@ -99,30 +99,41 @@ export async function composeFixture() {
       auxiliary.push(name);
       return name;
     },
-    async project(options: { stateDirectory?: string; externalSource?: string; externalReadOnly?: boolean; recoveryVolume?: string; image?:string; mounts?:readonly {volume:string;target:'/data/backups'|'/deployment'|'/mounts/external';readOnly?:boolean}[] } = {}) {
+    async project(options: { stateDirectory?: string; externalSource?: string; externalReadOnly?: boolean; recoveryVolume?: string; image?:string; publicOrigin?:string; allowLanHttp?:boolean; remoteSourcesVolume?:string; networkProject?:string; mounts?:readonly {volume:string;target:'/data/backups'|'/deployment'|'/mounts/external';readOnly?:boolean}[] } = {}) {
       if(options.recoveryVolume&&!auxiliary.includes(options.recoveryVolume))throw new Error('只允許掛載本次 fixture 的 recovery volume');
       if(options.mounts?.some(mount=>!auxiliary.includes(mount.volume))||new Set(options.mounts?.map(mount=>mount.target)).size!==(options.mounts?.length??0))throw new Error('只允許掛載本次 fixture 的唯一 volume target');
       if(options.recoveryVolume&&options.mounts?.some(mount=>mount.target==='/data/backups'))throw new Error('拒絕重疊 recovery target');
+      if(options.remoteSourcesVolume&&!auxiliary.includes(options.remoteSourcesVolume))throw new Error('只允許本次 fixture 的遠端設定 volume');
+      if(options.networkProject&&!projects.some(project=>project.name===options.networkProject))throw new Error('只允許本次 fixture 的來源網路');
       const name = `filehub-p05-${randomUUID().slice(0, 8)}`;
       const envFile = join(directory, `${name}.env`);
       const override = join(directory, `${name}.json`);
       const labels = { 'filehub.test-run': token };
       await writeFile(envFile, '');
       await writeFile(override, JSON.stringify({
+        ...(options.networkProject ? { networks: { default: { name: options.networkProject + '_default', external: true } } } : {}),
         services: Object.fromEntries(['migrate', 'api', 'worker'].map((role) => [role, { labels,volumes:[...(options.recoveryVolume?[{type:'volume',source:options.recoveryVolume,target:'/data/backups'}]:[]),...(options.mounts??[]).map(mount=>({type:'volume',source:mount.volume,target:mount.target,read_only:mount.readOnly??false}))] }])),
         volumes: {...Object.fromEntries(['state', 'files', 'cache'].map((volume) => [volume, { labels }])),...Object.fromEntries([...(options.recoveryVolume?[options.recoveryVolume]:[]),...(options.mounts??[]).map(mount=>mount.volume)].map(volume=>[volume,{external:true,name:volume}]))},
       }));
       const environment = childEnvironment({
         FILEHUB_IMAGE: options.image??image, FILEHUB_HTTP_PORT: '0', FILEHUB_BIND_ADDRESS: '127.0.0.1',
         // HTTP 測試用固定的合成 Origin，與 Docker 分配的主機埠分開。
-        FILEHUB_PUBLIC_ORIGIN: 'http://127.0.0.1:8080',
+        FILEHUB_PUBLIC_ORIGIN: options.publicOrigin ?? 'http://127.0.0.1:8080',
+        FILEHUB_ALLOW_LAN_HTTP: String(options.allowLanHttp ?? false),
         FILEHUB_STATE_DIR: options.stateDirectory ?? '/data/state',
         FILEHUB_LOG_LEVEL: 'info', COMPOSE_CONVERT_WINDOWS_PATHS: '0',
         FILEHUB_UPLOAD_MAINTENANCE_INTERVAL_MS: '1000',
         ...(options.externalSource ? { FILEHUB_EXTERNAL_SOURCE: options.externalSource, FILEHUB_EXTERNAL_READ_ONLY: String(options.externalReadOnly ?? true) } : {}),
       });
+      if (options.remoteSourcesVolume) {
+        const volume = JSON.parse(await docker(['volume', 'inspect', options.remoteSourcesVolume])) as { Mountpoint: string }[];
+        const mountpoint = volume[0]?.Mountpoint;
+        if (!mountpoint?.startsWith('/')) throw new Error('設定 volume 缺少實體位置');
+        environment.FILEHUB_REMOTE_SOURCES_PATH = mountpoint + '/remote-sources.json';
+      }
       const base = ['compose', '--project-name', name, '--env-file', envFile, '-f', join(repository, 'compose.yaml')];
       if (options.externalSource) base.push('-f', join(repository, 'compose.mounts.example.yaml'));
+      if (options.remoteSourcesVolume) base.push('-f', join(repository, 'compose.remote.example.yaml'));
       base.push('-f', override);
       const compose = (args: string[]) => docker([...base, ...args], environment, 90_000);
       projects.push({ name, compose });

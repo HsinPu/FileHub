@@ -18,11 +18,11 @@ export const hasControlCharacters = (value: string) => [...value].some((characte
 const contained = (root: string, path: string) => { const value = relative(root, path); return !isAbsolute(value) && value !== '..' && !value.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`); };
 
 export const privateName = (name: string) => name.toLowerCase() === '.filehub';
-export function relativePath(value: string, internal = false): string {
+export function relativePath(value: string, internal = false, platform: NodeJS.Platform = process.platform): string {
   if (value.length > 1024 || !value.isWellFormed() || value.includes('\\') || hasControlCharacters(value) || value.startsWith('/') || /^[A-Za-z]:/.test(value)) throw new PublicError('BAD_REQUEST');
   const parts = value === '' ? [] : value.split('/');
   if (parts.length > 64 || parts.some((part) => !part || part === '.' || part === '..' || (!internal && privateName(part)) || Buffer.byteLength(part) > 255
-    || (process.platform === 'win32' && (/[<>:"|?*]/.test(part) || /[. ]$/.test(part) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))))) throw new PublicError('BAD_REQUEST');
+    || (platform === 'win32' && (/[<>:"|?*]/.test(part) || /[. ]$/.test(part) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))))) throw new PublicError('BAD_REQUEST');
   return value;
 }
 

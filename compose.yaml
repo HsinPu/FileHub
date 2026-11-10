@@ -1,7 +1,7 @@
 name: filehub
 
 x-common: &common
-  image: ${FILEHUB_IMAGE:-filehub:0.42.1}
+  image: ${FILEHUB_IMAGE:-filehub:0.42.2}
   platform: linux/amd64
   pull_policy: never
   user: "1000:1000"

@@ -10,15 +10,15 @@ B 登入 A，在原有工作空間切換 A 的本機入口及 C 的遠端入口�
 
 ## 設定與資料邊界
 
-`FILEHUB_REMOTE_SOURCES_FILE` 指向伺服器私有 JSON 檔，啟動時驗證、載入，修改後重啟 API。格式為 `version: 1` 與 `sources` 陣列，每筆包含固定 UUID、顯示名稱、C 資料夾分享 URL、固定目標 IP、允許的 A 帳號清單。HTTP 來源須逐筆明確啟用 `allowHttp`。最多 16 個來源，設定檔最多 64 KiB。Linux 要求 UID 相符、一般檔案及 0600 權限。
+`FILEHUB_REMOTE_SOURCES_FILE` 指向伺服器私有 JSON 檔，啟動時驗證、載入，修改後重啟 API。格式為 `version: 1` 與 `sources` 陣列，每筆包含固定 UUID、顯示名稱、C 資料夾分享 URL、固定目標 IP、允許的 A 帳號清單。HTTP 來源須逐筆明確啟用 `allowHttp`。最多 16 個來源，設定檔最多 64 KiB。Linux 要求 UID 相符、一般檔案且不開放 group／other 權限，操作範例使用 0600。
 
 來源 UUID 不得與 A 的本機入口衝突。遠端來源保持伺服器設定，公開 entry 增加 `remote` 類型，僅回傳 opaque ID、標籤及瀏覽範圍。C 位址、分享秘密及 C session Cookie 都留在 A 後端，B 的請求不接受目標 URL。A 與 C 分別使用自己的本機 SQLite，schema 13 沿用。完整備份時將來源設定放入既有 deployment config 目錄一併保存，恢復後重新核對 IP、分享及帳號。
 
 ## 傳輸與失敗
 
-僅呼叫分享 API 的固定路由。目標 IP 固定於可信設定，使用 Node HTTP／HTTPS 的 lookup 連接指定 IP，HTTPS 仍核對 C 的憑證與 hostname。拒絕 redirects，避免來源要求 A 改連其他位置。設定與公開 API 都驗證格式，路徑使用既有正規化，遠端 JSON 以公開 share schemas 驗證，回應另核對請求的 path、分頁及項目路徑。
+僅呼叫分享 API 的固定路由。目標 IP 固定於可信設定，使用 Node HTTP／HTTPS 的 lookup 連接指定 IP，HTTPS 仍核對 C 的憑證與 hostname。拒絕 redirects，避免來源要求 A 改連其他位置。設定與公開 API 都驗證格式，遠端路徑採既有正規化的 Linux 名稱規則，不以 A 的作業系統限制 C 的檔名；C 仍驗自己的平台及分享範圍，A 的本機 FS 規則維持不變。遠端 JSON 以公開 share schemas 驗證，回應另核對請求的 path、分頁及項目路徑。
 
-每份瀏覽最多 5 秒，單份 JSON 最多 1 MiB，A 同時最多四份遠端操作。取消及服務關閉會中止自有 socket。C session 僅保留記憶體，每來源單一登入 Promise 合併並行存取，失效後由後續操作重新建立。未知或錯誤回應回固定 `REMOTE_UNAVAILABLE`，不轉送上游錯誤、Cookie、URL 或主機路徑。
+每份瀏覽最多 5 秒，單份 JSON 最多 1 MiB，A 同時最多四份遠端操作。取消讀取及服務關閉會中止自有 socket；合併中的登入有獨立五秒期限，單一呼叫取消不取消其他呼叫共用的登入。C session 僅保留記憶體，每來源單一登入 Promise 合併並行存取，失效後由後續操作重新建立。只移除實際失效的 session，晚到的舊錯誤不清除新 session。合法的 C `NOT_FOUND`／`CONFLICT` 沿用對應錯誤碼，其他錯誤或未知回應回固定 `REMOTE_UNAVAILABLE`，不轉送上游錯誤文字、Cookie、URL 或主機路徑。
 
 Node 的 timeout 事件需要程式實際關閉請求，實作使用 AbortSignal；固定來源與拒絕重新導向的設計參考 Node 官方 HTTP 文件及 OWASP SSRF 指引。[Node HTTP](https://nodejs.org/docs/latest-v24.x/api/http.html)、[OWASP SSRF](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
 

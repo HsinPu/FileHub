@@ -20,7 +20,7 @@ function resource(value: PublicShareResource): ResourceMetadata {
 }
 
 function matchesPath(path: string, expected: string): boolean {
-  try { return relativePath(path) === expected; }
+  try { return relativePath(path, false, 'linux') === expected; }
   catch { return false; }
 }
 
@@ -69,7 +69,9 @@ export class RemoteService {
   private async json<T extends TSchema>(source: RemoteSource, endpoint: string, schema: T, signal: AbortSignal, cookie?: string): Promise<Static<T>> {
     const response = await remoteRequest(source, endpoint, signal, cookie);
     if (response.status === 200 && Check(schema, response.value)) return response.value;
-    if (response.status === 401 || response.status === 403) this.sessions.delete(source.id);
+    if ((response.status === 401 || response.status === 403) && this.sessions.get(source.id)?.cookie === cookie) {
+      this.sessions.delete(source.id);
+    }
     if (Check(ApiErrorResponseSchema, response.value)) {
       if (response.status === 409 && response.value.code === 'CONFLICT') throw new PublicError('CONFLICT');
       if (response.status === 404 && response.value.code === 'NOT_FOUND') throw new PublicError('NOT_FOUND');
@@ -106,7 +108,8 @@ export class RemoteService {
     read: (source: RemoteSource, path: string, cookie: string, signal: AbortSignal) => Promise<T>): Promise<T> {
     const source = this.authorized(userId, id)[0];
     if (!source) throw new PublicError('NOT_FOUND');
-    const normalized = relativePath(path);
+    // Remote paths never address A's filesystem; C validates its own platform-specific names.
+    const normalized = relativePath(path, false, 'linux');
     if (this.closing.signal.aborted || this.active >= 4) throw new PublicError('REMOTE_UNAVAILABLE');
     this.active++;
     return this.track((async () => {

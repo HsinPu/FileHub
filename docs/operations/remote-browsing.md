@@ -10,7 +10,7 @@ B 的瀏覽器登入 A，從 A 工作空間切換本機入口及「遠端 FileHu
 
 ## 在 A 設定來源
 
-以 [remote-sources.example.json](../../remote-sources.example.json) 為格式範例。將設定放在主機私有目錄，Linux 範例如下。
+以 [remote-sources.example.json](../../remote-sources.example.json) 為格式範例。將設定放在主機私有目錄，且放在任何已註冊檔案入口之外，避免經一般檔案瀏覽或分享讀取。Linux 範例如下。
 
 ```shell
 sudo install -d -m 700 -o 1000 -g 1000 /srv/filehub-config
@@ -53,6 +53,6 @@ B 登入 A，選取「C 的檔案」即可進入遠端來源。可展開資料�
 
 修改來源、IP、連結或 `users` 後重啟 A 的 API。分享到期時在 C 重新建立授權連結，再更新 A 的私有設定。API 啟動只驗設定，C 的連線與授權在實際瀏覽時核對。
 
-JSON 含分享秘密，權限與備份依私有設定管理。`remote-sources.json` 已加入 Git 與 Docker build 排除，僅格式範例納入原始碼。完整備份以 `/srv/filehub-config` 作為 deployment config 目錄保存，再依[完整還原](full-backup.md)核對還原後的來源 IP、授權及帳號。
+JSON 含分享秘密，權限與備份依私有設定管理。`remote-sources.json` 已加入 Git 與 Docker build 排除，僅格式範例納入原始碼。完整備份以 `/srv/filehub-config` 作為 deployment config 目錄保存，再依[完整還原](full-backup.md)核對還原後的來源 IP、授權及帳號。A 不保存 C 的原檔副本；A 的備份只涵蓋 A 與這份來源設定，C 的原檔及 DB 由 C 獨立備份。
 
 目前遠端入口提供瀏覽清單，下載、預覽、寫入、垃圾桶、再次分享、遞迴搜尋及跨機同步另待擴充。限制及傳輸契約見[遠端瀏覽決策](../decisions/P11-remote-browsing.md)。

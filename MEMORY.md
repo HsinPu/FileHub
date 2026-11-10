@@ -10,6 +10,10 @@
 
 - P11.3 的遠端 UI 重用 Workspace／FileListing 三種檢視，以能力停用不可執行的動作，且不載入本機上傳佇列或垃圾桶。名稱篩選可用，遞迴搜尋停用；C 故障顯示來源錯誤，仍可切回 A。隔離 Linux 三視窗已驗真實 A／C，瀏覽器只向 A 請求；原 8088 的資料與映像另行管理，不把隔離測試當作使用者分頁交付。
 
+- P11.4 的遠端相對路徑使用 Linux 名稱規則，C 再驗自己的平台；不能以 Windows 上的 A 拒絕 C 的 `con`、冒號或尾點等合法 Linux 名稱。本機 scoped FS 的預設平台規則不變。C session 的並行舊錯誤只清除實際失效的 cookie，不能清除更新的 session；四份 admission、關閉中止、錯誤清單與跨平台名稱均有回歸。
+
+- P11 常規 Compose 測試 A／C 都使用當版 image；舊版 C 相容性透過選配 `FILEHUB_TEST_REMOTE_IMAGE` 明確指定，空值及未設定都回當版，避免乾淨 CI 隱性依賴本機歷史 image。0.42.2 已驗同版與 0.41.0 C；實際 LAN／其他 OS、TLS 憑證環境及使用者資料需另簽收。來源私有設定須放在已註冊入口之外，A 備份不包含 C 的原檔。
+
 ## Compose 連接埠與登入
 
 - Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際瀏覽器來源，內網 HTTP 必須明確啟用 `FILEHUB_ALLOW_LAN_HTTP=true`。`FILEHUB_PUBLIC_ORIGIN` 只填協定、主機與埠。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。
