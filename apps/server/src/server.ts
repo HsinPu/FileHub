@@ -17,6 +17,8 @@ import { ArtifactStore } from './modules/operations/artifacts.js';
 import { ShareService } from './modules/shares/service.js';
 
 import { SettingsService } from './modules/settings/service.js';
+import { loadRemoteSources } from './modules/remotes/config.js';
+import { RemoteService } from './modules/remotes/service.js';
 
 export async function main(environment: Environment = process.env) {
   const config = parseConfig(environment);
@@ -26,9 +28,10 @@ export async function main(environment: Environment = process.env) {
   const mutations = new MutationService(database, entries);
   const uploads = new UploadService(database, entries, mutations);
   const files = new FileService(entries), operations = new OperationService(new OperationCatalog(database), entries, files,new Set(['copy','move','archive'])),artifacts=new ArtifactStore(database,entries,files);
+  const remotes = new RemoteService(database, loadRemoteSources(config.remoteSourcesFile));
   const app = (() => {
     try {
-      return buildApp({ config, webRoot: DEFAULT_WEB_ROOT, dependencies: { identity,settings:new SettingsService(database,identity,entries), shares:new ShareService(database,entries,files), entries, mutations, uploads, operations,artifacts, trash: new TrashService(database, entries, mutations), files, readiness: (signal) => !signal.aborted && database.isReady() } });
+      return buildApp({ config, webRoot: DEFAULT_WEB_ROOT, dependencies: { remotes, identity,settings:new SettingsService(database,identity,entries), shares:new ShareService(database,entries,files), entries, mutations, uploads, operations,artifacts, trash: new TrashService(database, entries, mutations), files, readiness: (signal) => !signal.aborted && database.isReady() } });
     } catch (error) {
       database.close();
       throw error;
@@ -38,6 +41,7 @@ export async function main(environment: Environment = process.env) {
     app.log.error({ event: 'shutdown_failed' }, 'API 未正常完成關閉');
     process.exit(1);
   });
+  app.addHook('preClose', async () => { await remotes.close(); });
   app.addHook('onClose', async () => { detach(); try { await uploads.close(); } finally { try { await mutations.close(); } finally { await runtime.close(); } } });
   try {
     const address = await listenApp(app, config);

@@ -27,6 +27,8 @@ export { UploadService } from './modules/uploads/service.js';
 export { UploadMaintainer } from './modules/uploads/maintenance.js';
 
 export { ShareService } from './modules/shares/service.js';
+export { RemoteService } from './modules/remotes/service.js';
+export { loadRemoteSources, parseRemoteSources } from './modules/remotes/config.js';
 export { SettingsService } from './modules/settings/service.js';
 export { createSnapshot,restoreSnapshot,verifySnapshot } from './maintenance/snapshot.js';
 export { acquireStateLock,assertIdleOwners,STATE_LOCK_NAME,RESTORE_PENDING } from './lifecycle/state-lock.js';

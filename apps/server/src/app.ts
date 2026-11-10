@@ -31,7 +31,9 @@ import { shareRoutes,publicShareRoutes } from './modules/shares/routes.js';
 
 import type { SettingsService } from './modules/settings/service.js';
 import { settingsRoutes } from './modules/settings/routes.js';
+import type { RemoteService } from './modules/remotes/service.js';
 export interface AppDependencies {
+  readonly remotes?: RemoteService;
   readonly settings?:SettingsService;
   readonly shares?: ShareService;
   // 呼叫端保有資源 ownership；factory 只借用本次檢查函式。
@@ -53,6 +55,7 @@ export interface AppOptions {
 }
 
 export function buildApp({ config, dependencies = {}, webRoot }: AppOptions): FastifyInstance {
+  if (dependencies.remotes && (!dependencies.identity || !dependencies.entries || !dependencies.files)) throw new Error('Remote routes require identity, entries and files');
   if (dependencies.entries && !dependencies.identity) throw new Error('Entry routes require identity');
   if (dependencies.files && (!dependencies.identity || !dependencies.entries)) throw new Error('File routes require identity and entries');
   if (dependencies.mutations && (!dependencies.identity || !dependencies.entries)) throw new Error('Mutation routes require identity and entries');
@@ -92,8 +95,8 @@ export function buildApp({ config, dependencies = {}, webRoot }: AppOptions): Fa
   });
   if (webRoot !== undefined) app.register(webRoutes, { webRoot });
   if (dependencies.identity) app.register(identityRoutes, { identity: dependencies.identity, config });
-  if (dependencies.entries && dependencies.identity) app.register(entryRoutes, { entries: dependencies.entries, identity: dependencies.identity });
-  if (dependencies.files && dependencies.identity) app.register(fileRoutes, { files: dependencies.files, identity: dependencies.identity });
+  if (dependencies.entries && dependencies.identity) app.register(entryRoutes, { entries: dependencies.entries, identity: dependencies.identity, ...(dependencies.remotes ? { remotes: dependencies.remotes } : {}) });
+  if (dependencies.files && dependencies.identity) app.register(fileRoutes, { files: dependencies.files, identity: dependencies.identity, ...(dependencies.remotes ? { remotes: dependencies.remotes } : {}) });
   if (dependencies.entries && dependencies.identity) app.register(searchRoutes, { search: new SearchService(dependencies.entries), identity: dependencies.identity });
   if (dependencies.files && dependencies.identity) app.register(previewRoutes, { previews: new PreviewService(dependencies.files), identity: dependencies.identity });
   if (dependencies.mutations && dependencies.identity) app.register(writeRoutes, { mutations: dependencies.mutations, identity: dependencies.identity, config });

@@ -6,6 +6,8 @@
 
 - 2026-11-09 使用者明確定義 B 為瀏覽器電腦，A 與 C 均安裝 FileHub。B 登入 A 後，透過 A 的同一介面瀏覽 A 與 C 的資料夾及檔案清單。2026-11-10 授權建立目標並實作，依[主計畫 P11](IMPLEMENTATION_PLAN.md#p11-透過-a-瀏覽-a-與-c-的檔案)與[遠端瀏覽決策](docs/decisions/P11-remote-browsing.md)接續。第一版重用 C 的資料夾分享授權，A 以私有檔案註冊來源、固定 IP 與 A 帳號範圍。schema 13 沿用，瀏覽以外的能力另待需求確認。
 
+- P11.2 的 RemoteService 與原本 EntryService 分工，避免把遠端入口當成實體 FS 根路徑。只有 listing／metadata 選用遠端 reader，其餘本機服務由原本授權拒絕未知 entry。C 的 401／403 映射遠端來源錯誤，不能讓前端把 C session 失效當成 A 登入過期。來源設定、C Cookie 與授權秘密只留在 A 後端。
+
 ## Compose 連接埠與登入
 
 - Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際瀏覽器來源，內網 HTTP 必須明確啟用 `FILEHUB_ALLOW_LAN_HTTP=true`。`FILEHUB_PUBLIC_ORIGIN` 只填協定、主機與埠。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。

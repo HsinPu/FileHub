@@ -8,8 +8,9 @@ import type { IdentityService } from '../identity/service.js';
 import { sessionCookie } from '../identity/routes.js';
 import { PublicError } from '../../plugins/errors.js';
 import { byteRange } from './range.js';
+import type { RemoteService } from '../remotes/service.js';
 
-export const fileRoutes: FastifyPluginAsync<{ files: FileService; identity: IdentityService }> = async (instance, { files, identity }) => {
+export const fileRoutes: FastifyPluginAsync<{ files: FileService; identity: IdentityService; remotes?: RemoteService }> = async (instance, { files, identity, remotes }) => {
   const app = instance.withTypeProvider<TypeBoxTypeProvider>();
   const closing = new AbortController();
   const downloads = new Set<() => Promise<void>>();
@@ -32,14 +33,16 @@ export const fileRoutes: FastifyPluginAsync<{ files: FileService; identity: Iden
   app.get('/api/entries/:entryId/files', { schema: { params: EntryParamsSchema, querystring: ListQuerySchema, response: { 200: ListingResponseSchema, ...errors } } }, async (request, reply) => {
     const operation = requestSignal(request, reply);
     try {
-      const result = await files.list(user(request), request.params.entryId, request.query.path ?? '', request.query, operation.signal);
+      const reader = remotes?.has(request.params.entryId) ? remotes : files;
+      const result = await reader.list(user(request), request.params.entryId, request.query.path ?? '', request.query, operation.signal);
       user(request); return result;
     } finally { operation.dispose(); }
   });
   app.get('/api/entries/:entryId/metadata', { schema: { params: EntryParamsSchema, querystring: ResourceQuerySchema, response: { 200: MetadataResponseSchema, ...errors } } }, async (request, reply) => {
     const operation = requestSignal(request, reply);
     try {
-      const result = await files.metadata(user(request), request.params.entryId, request.query.path ?? '', operation.signal);
+      const reader = remotes?.has(request.params.entryId) ? remotes : files;
+      const result = await reader.metadata(user(request), request.params.entryId, request.query.path ?? '', operation.signal);
       user(request);
       if (request.query.version && request.query.version !== result.resource.version) throw new PublicError('CONFLICT');
       return result;

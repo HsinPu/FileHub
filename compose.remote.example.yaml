@@ -1,0 +1,11 @@
+services:
+  api:
+    environment:
+      FILEHUB_REMOTE_SOURCES_FILE: /run/filehub/remote-sources.json
+    volumes:
+      - type: bind
+        source: ${FILEHUB_REMOTE_SOURCES_PATH:?Set FILEHUB_REMOTE_SOURCES_PATH to the private JSON file}
+        target: /run/filehub/remote-sources.json
+        read_only: true
+        bind:
+          create_host_path: false

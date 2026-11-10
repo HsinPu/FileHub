@@ -14,6 +14,7 @@ export interface ServiceConfig extends DatabaseConfig {
 }
 
 export interface AppConfig extends ServiceConfig {
+  readonly remoteSourcesFile?: string;
   readonly publicOrigin?: string;
   readonly host: string;
   readonly port: number;
@@ -116,6 +117,9 @@ export function parseConfig(environment: Environment = process.env): AppConfig {
     host,
     port: integer(environment, 'FILEHUB_PORT', '3000', 0, 65_535),
     readinessTimeoutMs: integer(environment, 'FILEHUB_READINESS_TIMEOUT_MS', '1000', 1, 60_000),
+    ...(environment.FILEHUB_REMOTE_SOURCES_FILE === undefined ? {} : {
+      remoteSourcesFile: localPath(text(environment, 'FILEHUB_REMOTE_SOURCES_FILE', ''), 'FILEHUB_REMOTE_SOURCES_FILE'),
+    }),
     ...(publicOrigin ? { publicOrigin } : {}),
   });
 }

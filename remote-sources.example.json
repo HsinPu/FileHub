@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "b1857429-61fd-4f41-81ba-b7c03a3e8d16",
+      "label": "C 的檔案",
+      "url": "http://192.168.1.20:8088/FileHub/?share=57b0586c-23c7-46e4-bdfe-8b504b948f25#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "address": "192.168.1.20",
+      "allowHttp": true,
+      "users": []
+    }
+  ]
+}

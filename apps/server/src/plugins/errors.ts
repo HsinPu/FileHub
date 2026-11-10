@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 
 const messages: Record<ApiErrorCode, string> = {
   BAD_REQUEST: '請求格式不正確。',
+  REMOTE_UNAVAILABLE: '遠端來源無法使用，請確認連線及授權。',
   NOT_FOUND: '找不到此 API。',
   PAYLOAD_TOO_LARGE: '請求內容超過允許大小。',
   UNSUPPORTED_MEDIA_TYPE: '不支援此內容格式。',
@@ -27,7 +28,7 @@ export class PublicError extends Error {
 
 function classify(error: unknown): { code: ApiErrorCode; status: number; details?: ApiErrorResponse['details'] } {
   if (error instanceof PublicError) {
-    const status: Partial<Record<ApiErrorCode, number>> = { BAD_REQUEST: 400, PAYLOAD_TOO_LARGE: 413, UNSUPPORTED_MEDIA_TYPE: 415, UNAUTHORIZED: 401, FORBIDDEN: 403, NOT_FOUND: 404, CONFLICT: 409, RATE_LIMITED: 429, SERVICE_UNAVAILABLE: 503, RESOURCE_LIMIT: 422, RANGE_NOT_SATISFIABLE: 416 };
+    const status: Partial<Record<ApiErrorCode, number>> = { BAD_REQUEST: 400, PAYLOAD_TOO_LARGE: 413, UNSUPPORTED_MEDIA_TYPE: 415, UNAUTHORIZED: 401, FORBIDDEN: 403, NOT_FOUND: 404, CONFLICT: 409, RATE_LIMITED: 429, SERVICE_UNAVAILABLE: 503, REMOTE_UNAVAILABLE: 503, RESOURCE_LIMIT: 422, RANGE_NOT_SATISFIABLE: 416 };
     const writeStatus: Partial<Record<ApiErrorCode, number>> = { MUTATION_BUSY: 409, MUTATION_UNCERTAIN: 409, WRITE_UNSUPPORTED: 422, STORAGE_FULL: 507, CROSS_DEVICE: 422 };
     return { code: error.code, status: status[error.code] ?? writeStatus[error.code] ?? 500 };
   }

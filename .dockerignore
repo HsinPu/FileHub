@@ -44,3 +44,4 @@ backups
 
 apps/server/native/filehub-fs
 !THIRD_PARTY_NOTICES.md
+**/remote-sources.json

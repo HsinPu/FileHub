@@ -4,7 +4,7 @@
 
 ## 目前階段
 
-P0–P10 共 70 份工作已完成，目前程式版本 `0.41.0`／schema 13。P10.8 新增內網 HTTP 與 `/FileHub/`，已驗原生核心、Chromium 及隔離 Compose，包含 Linux 瀏覽器分段上傳（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，歷史版本與完整進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入、Windows 開發唯讀，未驗環境依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
+P0–P10 共 70 份工作已完成，目前程式版本 `0.42.0`／schema 13。P10.8 新增內網 HTTP 與 `/FileHub/`，已驗原生核心、Chromium 及隔離 Compose，包含 Linux 瀏覽器分段上傳（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，歷史版本與完整進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入、Windows 開發唯讀，未驗環境依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
 2026-11-09 使用者確認 P11 的遠端 FileHub 瀏覽需求，B 為瀏覽器電腦，A 與 C 均安裝 FileHub，B 登入 A 後在同一介面瀏覽 A 與 C 的資料夾及檔案清單。2026-11-10 已授權建立目標並實作，依主計畫 P11.1–P11.4 及[遠端瀏覽決策](docs/decisions/P11-remote-browsing.md)逐份執行。採 C 資料夾分享授權、A 私有來源設定與固定 IP，瀏覽以外的能力另待需求確認。
 
@@ -113,7 +113,7 @@ P7.1–P7.9 已完成殼層、工具列、搜尋、選取、導覽、設定、�
 
 ## 版本與驗證
 
-- 版本來源為根 `package.json`，目前 `0.41.0`；三個私有 workspace 同版，實質程式變更依 SemVer 同步。發行版本亦同步 Docker label、Compose／env 預設 image tag 及 `docker/nfs-fixture.Dockerfile` 的 CI image 預設；fixtures 從根版本取 tag，`check:project` 核對一致性。文件變更不增加版本。
+- 版本來源為根 `package.json`，目前 `0.42.0`；三個私有 workspace 同版，實質程式變更依 SemVer 同步。發行版本亦同步 Docker label、Compose／env 預設 image tag 及 `docker/nfs-fixture.Dockerfile` 的 CI image 預設；fixtures 從根版本取 tag，`check:project` 核對一致性。文件變更不增加版本。
 - 修改文件後檢查相對連結、來源定位、圖表、證據邊界與 `git diff --check`。
 - 更新本檔、`MEMORY.md`、`README.md`，介面知識另同步 `DESIGN.md`；只保留已驗證且可長期使用的資訊。
 - 任務完成後提交本次相關變更；除非使用者另外明確要求，不自動 push。

@@ -42,3 +42,4 @@ Thumbs.db
 !/docs/filebrowser-study/evidence/filebrowser-LICENSE.txt
 
 apps/server/native/filehub-fs
+remote-sources.json

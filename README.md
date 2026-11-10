@@ -2,7 +2,7 @@
 
 FileHub 是自行部署的網頁檔案管理工具，支援內建儲存與已掛載的外部資料夾。使用瀏覽器管理檔案、分享內容與追蹤背景工作；檔案本體保留在檔案系統，SQLite 只保存管理資料。
 
-目前版本 **0.41.0**，資料庫 schema **13**。正式部署目標是單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
+目前版本 **0.42.0**，資料庫 schema **13**。正式部署目標是單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
 
 ## 主要功能
 
@@ -55,7 +55,7 @@ docker compose ps -a
 curl --fail http://127.0.0.1:8088/FileHub/health/ready
 ```
 
-這會從原始碼建置本機 `filehub:0.41.0`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟 [http://127.0.0.1:8088/FileHub/](http://127.0.0.1:8088/FileHub/)。
+這會從原始碼建置本機 `filehub:0.42.0`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟 [http://127.0.0.1:8088/FileHub/](http://127.0.0.1:8088/FileHub/)。
 
 初次安裝**沒有預設帳密**。在互動終端建立管理員，密碼由隱藏提示輸入，至少 15 字元：
 
@@ -76,12 +76,13 @@ docker compose stop api worker
 
 | 設定 | 預設／用途 |
 | --- | --- |
-| `FILEHUB_IMAGE` | `filehub:0.41.0`，三角色共用同一版本 |
+| `FILEHUB_IMAGE` | `filehub:0.42.0`，三角色共用同一版本 |
 | `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT` | 預設 `0.0.0.0:8088`，讓 FileHub 在主機的 IPv4 網路介面接收連線 |
 | `FILEHUB_PUBLIC_ORIGIN` | 本機預設為 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。從其他電腦登入時設定實際使用的協定、主機與埠 |
 | `FILEHUB_ALLOW_LAN_HTTP` | 預設 `false`。在受信任內網使用 HTTP 登入時設定 `true` |
 | `FILEHUB_STATE_DIR` | 原生為執行目錄的 `state`；Compose 預設 `/data/state` |
 | `FILEHUB_EXTERNAL_SOURCE`／`FILEHUB_EXTERNAL_READ_ONLY` | 外部掛載範例，預設唯讀 |
+| `FILEHUB_REMOTE_SOURCES_FILE` | 原生 API 的私有遠端 FileHub 來源 JSON。Compose 選配掛載使用 `FILEHUB_REMOTE_SOURCES_PATH` |
 | `FILEHUB_LOG_LEVEL` | `info`；避免輸出帳密、Cookie 或使用者檔案內容 |
 
 如需沿用 8080，在 `.env` 設定 `FILEHUB_HTTP_PORT=8080` 即可。若也有手動指定 `FILEHUB_PUBLIC_ORIGIN`，請讓它與實際登入網址相符。
@@ -91,7 +92,7 @@ docker compose stop api worker
 在 `.env` 設定以下內容，並把 `192.168.1.10` 換成 FileHub 主機的內網 IP。`FILEHUB_PUBLIC_ORIGIN` 填協定、主機和埠，`/FileHub/` 加在瀏覽器網址上。
 
 ```dotenv
-FILEHUB_IMAGE=filehub:0.41.0
+FILEHUB_IMAGE=filehub:0.42.0
 FILEHUB_BIND_ADDRESS=0.0.0.0
 FILEHUB_HTTP_PORT=8088
 FILEHUB_ALLOW_LAN_HTTP=true
@@ -133,6 +134,7 @@ Linux 首次安裝瀏覽器改用 `node scripts/playwright.mjs install --with-de
 | [上傳](docs/operations/uploads.md) | 分段、續傳、到期與取消 |
 | [搜尋與預覽](docs/operations/search-and-preview.md) | 三種檢視、搜尋及安全預覽 |
 | [背景工作](docs/operations/background-operations.md) | 複製、搬移、ZIP 與受控恢復 |
+| [遠端 FileHub](docs/operations/remote-browsing.md) | A 的來源設定、C 的資料夾授權與帳號範圍 |
 | [公開分享](docs/operations/shares.md)、[設定管理](docs/operations/settings.md) | 分享與管理介面 |
 | [完整備份與還原](docs/operations/full-backup.md) | 停機、驗證及全新目標還原 |
 | [架構](ARCHITECTURE.md)、[實作計畫](IMPLEMENTATION_PLAN.md) | 技術邊界、工作編號與進度 |

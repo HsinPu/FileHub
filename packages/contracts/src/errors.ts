@@ -2,6 +2,7 @@ import { Type, type Static } from 'typebox';
 
 export const ApiErrorCodeSchema = Type.Union([
   Type.Literal('BAD_REQUEST'),
+  Type.Literal('REMOTE_UNAVAILABLE'),
   Type.Literal('NOT_FOUND'),
   Type.Literal('PAYLOAD_TOO_LARGE'),
   Type.Literal('UNSUPPORTED_MEDIA_TYPE'),

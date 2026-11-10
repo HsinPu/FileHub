@@ -4,7 +4,7 @@
 
 新版 FileHub 採 Node.js、TypeScript 與 Fastify，前端使用 React、TypeScript 與 Ant Design；Vitest 負責單元與整合測試，Playwright 負責實際 HTTP 與瀏覽器操作驗證。管理資料庫為 SQLite（WAL），正式部署在單台 Linux 主機，以 Docker Compose 將同一 image 分成 `api`、`worker` 兩個服務。系統同時支援內建儲存及外部既有資料夾／NAS／NFS。
 
-P0–P10 共 70 份工作已完成，目前程式版本 `0.41.0`／schema 13。進度依[主計畫](IMPLEMENTATION_PLAN.md)，環境界線依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。Linux 寫入，Windows 開發唯讀。
+P0–P10 共 70 份工作已完成，目前程式版本 `0.42.0`／schema 13。進度依[主計畫](IMPLEMENTATION_PLAN.md)，環境界線依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。Linux 寫入，Windows 開發唯讀。
 
 P10.1 新增 H 圖像品牌及 320px 工具列修正。P10.2 依[白色畫布規格](docs/decisions/P10-white-canvas.md)調整集中 theme 與 CSS。本機 8088 依 P10.7 交付 0.40.18（本機 `docs/validation/P10.7.md`）。P10.8 的內網 HTTP 與路徑部署使用同一 schema 13，安裝見[部署操作](docs/operations/deployment.md)。
 
