@@ -4,7 +4,7 @@
 
 本文件是新版 FileHub 從 P0 開始的實作順序與進度依據。後續每次開工先選定這裡的一份工作，依指定參考、修改位置及驗收條件完成，再更新狀態並 commit。
 
-建立於 2026-10-27。**P0–P9 已完成 62 份，加上 P10.1–P10.8 共 70 份，程式版本 `0.42.0`／schema 13。** P10.8 在隔離環境驗證內網 HTTP 與 `/FileHub/`。本機 8088 的交付版本依 P10.7 為 `0.40.18`。P8 的 [File Browser 全畫面還原](docs/reviews/filebrowser-visual-reference.md)與驗收保留歷史；P9 的[設計研究](docs/reviews/p9-design-review.md)已完成實作與保留資料交付。P10.3 於 2026-11-04 完成視覺驗收及原圖判讀更正；P10.4 已完成正式交付。原始計畫功能對照、最新結果及缺口見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。歷史功能驗收依 P6.4（本機 `docs/validation/P6.4.md`）及跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
+建立於 2026-10-27。**P0–P9 已完成 62 份，加上 P10.1–P10.8 共 70 份，程式版本 `0.42.1`／schema 13。** P10.8 在隔離環境驗證內網 HTTP 與 `/FileHub/`。本機 8088 的交付版本依 P10.7 為 `0.40.18`。P8 的 [File Browser 全畫面還原](docs/reviews/filebrowser-visual-reference.md)與驗收保留歷史；P9 的[設計研究](docs/reviews/p9-design-review.md)已完成實作與保留資料交付。P10.3 於 2026-11-04 完成視覺驗收及原圖判讀更正；P10.4 已完成正式交付。原始計畫功能對照、最新結果及缺口見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。歷史功能驗收依 P6.4（本機 `docs/validation/P6.4.md`）及跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
 ## 計畫放置與使用方式
 
@@ -407,11 +407,11 @@ P10.1 程式版本為 0.40.15，P10.2 的白底外觀修正增加 PATCH 至 0.40
 | --- | --- | --- |
 | P11.1 完成 | 本計畫、架構與遠端瀏覽決策 | 固定來源、目錄分享授權、秘密及帳號邊界、唯讀清單契約與驗收矩陣 |
 | P11.2 完成 | server remote 模組、entries／files routes、contracts、config、Compose 範例 | 0.42.0／schema 13；六項新回歸、型別／Lint／正式 build 通過，含兩個獨立 DB／HTTP 服務、授權、撤銷／到期、斷線恢復及回應限制。完整與正式 Compose 驗收接 P11.4 |
-| P11.3 未開始 | Workspace／入口導覽／SearchControls、DESIGN、E2E | 沿用三檢視及本機流程，遠端標示與操作能力正確，三視窗只向 A 請求 |
-| P11.4 未開始 | 正式 image／Compose、操作文件、版本與驗證摘要 | 核心檢查、完整 Chromium、兩服務來源瀏覽、選配掛載與私有資料保留 |
+| P11.3 完成 | Workspace／入口導覽／SearchControls、DESIGN、E2E | 0.42.1；Linux Chromium 六項三視窗通過，15 張原圖、8 張代表畫面目視複核；三檢視、巢狀／刷新、名稱篩選、斷線恢復與 B 只向 A 請求已驗。原有全套回歸接 P11.4 |
+| P11.4 進行中 | 正式 image／Compose、操作文件、版本與驗證摘要 | 核心檢查、完整 Chromium、兩服務來源瀏覽、選配掛載與私有資料保留 |
 
 ## 下一次開工入口
 
 **P0–P10 共 70 份完成。** 2026-11-05 已依 P10.7（本機 `docs/validation/P10.7.md`）將本機 8088 保留資料更新至 0.40.18。P10.8 新增內網 HTTP 部署設定，實機安裝步驟見 [README](README.md#從另一台電腦開啟-filehub)。原始需求與縮限依驗收稽核，未驗環境依跨階段矩陣。後續新需求另列計畫，每份驗證後本機 commit。
 
-P11.2 後端已完成受影響驗證，接續 P11.3 的工作空間與瀏覽器流程。P11 的工程結果與 P0–P10 的 70 份歷史完成紀錄分開計算。
+P11.1–P11.3 已完成，接續 P11.4 的正式映像與整體回歸。P11 的工程結果與 P0–P10 的 70 份歷史完成紀錄分開計算。

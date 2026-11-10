@@ -4,9 +4,9 @@
 
 ## 目前階段
 
-P0–P10 共 70 份工作已完成，目前程式版本 `0.42.0`／schema 13。P10.8 新增內網 HTTP 與 `/FileHub/`，已驗原生核心、Chromium 及隔離 Compose，包含 Linux 瀏覽器分段上傳（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，歷史版本與完整進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入、Windows 開發唯讀，未驗環境依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
+P0–P10 共 70 份工作已完成，目前程式版本 `0.42.1`／schema 13。P10.8 新增內網 HTTP 與 `/FileHub/`，已驗原生核心、Chromium 及隔離 Compose，包含 Linux 瀏覽器分段上傳（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，歷史版本與完整進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入、Windows 開發唯讀，未驗環境依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
-2026-11-09 使用者確認 P11 的遠端 FileHub 瀏覽需求，B 為瀏覽器電腦，A 與 C 均安裝 FileHub，B 登入 A 後在同一介面瀏覽 A 與 C 的資料夾及檔案清單。2026-11-10 已授權建立目標並實作，依主計畫 P11.1–P11.4 及[遠端瀏覽決策](docs/decisions/P11-remote-browsing.md)逐份執行。採 C 資料夾分享授權、A 私有來源設定與固定 IP，瀏覽以外的能力另待需求確認。
+2026-11-09 使用者確認 P11 的遠端 FileHub 瀏覽需求，B 為瀏覽器電腦，A 與 C 均安裝 FileHub，B 登入 A 後在同一介面瀏覽 A 與 C 的資料夾及檔案清單。2026-11-10 已授權建立目標並實作，P11.1–P11.3 已完成，正式整體驗收接 P11.4，契約見[遠端瀏覽決策](docs/decisions/P11-remote-browsing.md)。採 C 資料夾分享授權、A 私有來源設定與固定 IP，瀏覽以外的能力另待需求確認。
 
 2026-11-01 使用者要求準備驗收並比對原始計畫，對照與操作清單見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。原始 33 項及後續定案契約分開核對；程式存在、歷史證據完整、目前測試通過及實際 8088 交付是不同判定，不能合併成「全部完成」。
 
@@ -25,7 +25,7 @@ P0–P10 共 70 份工作已完成，目前程式版本 `0.42.0`／schema 13。P
 - 回答、文件與產品文案使用繁體中文（台灣用語）。
 - 每次任務先閱讀本檔、`MEMORY.md`、`README.md`；實作前另讀 `IMPLEMENTATION_PLAN.md`、`ARCHITECTURE.md` 與 `CONTRIBUTING.md`，涉及介面時另讀 `DESIGN.md`。
 - 參考來源為 `C:\Users\win10\Desktop\Github\filebrowser`；分析時保持來源不變，驗證使用指定 commit 的隔離副本。
-- 根目錄 `IMPLEMENTATION_PLAN.md` 是後續實作的主計畫與進度依據，列出已完成 P0–P10 的工作編號、修改位置、參考原碼及驗收，以及待規劃的 P11 需求。依使用者已授權階段與下一個未完成工作接續；每份更新狀態與 `docs/validation/<工作編號>.md`，以工作編號 commit，不自行跳過前置驗證。
+- 根目錄 `IMPLEMENTATION_PLAN.md` 是後續實作的主計畫與進度依據，列出 P0–P11 的工作編號、修改位置、參考原碼及驗收。依使用者已授權階段與下一個未完成工作接續；每份更新狀態與 `docs/validation/<工作編號>.md`，以工作編號 commit，不自行跳過前置驗證。
 - 架構與流程以 `ARCHITECTURE.md`、`CONTRIBUTING.md` 為依據；`docs/filebrowser-study/07-filehub-rewrite-blueprint.md` 保存行為需求與階段概覽，不另維護第二套工作進度。01–06 為來源研究，證據在該目錄的 `evidence/`；保留固定 commit、行號、REA Evidence ID 與驗證條件。
 - `docs/toolchain-recommendation.md` 保存已確認工具鏈；工程與功能決策在 `docs/decisions/`，驗證在 `docs/validation/`，最新版本／進度依 README／主計畫。操作見 `docs/operations/`。UI 規範見 DESIGN；本機 Windows／Debian Chromium 與 Docker Desktop 結果不代表 GitHub hosted jobs、其他瀏覽器、裸機或真實網路掛載已驗證。
 - 明確區分來源已確認行為、隔離環境實測、推論與 FileHub 設計建議。靜態分析不能當作執行結果。
@@ -113,7 +113,7 @@ P7.1–P7.9 已完成殼層、工具列、搜尋、選取、導覽、設定、�
 
 ## 版本與驗證
 
-- 版本來源為根 `package.json`，目前 `0.42.0`；三個私有 workspace 同版，實質程式變更依 SemVer 同步。發行版本亦同步 Docker label、Compose／env 預設 image tag 及 `docker/nfs-fixture.Dockerfile` 的 CI image 預設；fixtures 從根版本取 tag，`check:project` 核對一致性。文件變更不增加版本。
+- 版本來源為根 `package.json`，目前 `0.42.1`；三個私有 workspace 同版，實質程式變更依 SemVer 同步。發行版本亦同步 Docker label、Compose／env 預設 image tag 及 `docker/nfs-fixture.Dockerfile` 的 CI image 預設；fixtures 從根版本取 tag，`check:project` 核對一致性。文件變更不增加版本。
 - 修改文件後檢查相對連結、來源定位、圖表、證據邊界與 `git diff --check`。
 - 更新本檔、`MEMORY.md`、`README.md`，介面知識另同步 `DESIGN.md`；只保留已驗證且可長期使用的資訊。
 - 任務完成後提交本次相關變更；除非使用者另外明確要求，不自動 push。

@@ -4,14 +4,14 @@ import { Button, Dropdown, type MenuProps } from 'antd';
 import type { Location } from './navigation.js';
 import { ToolIcon } from '../../app/ToolIcon.js';
 
-export function FileToolbar({ location, navigate, view, onView, loading, refresh, search, selecting, selected, onSelecting }: {
+export function FileToolbar({ location, navigate, view, onView, loading, refresh, search, selecting, selected, onSelecting, selectionAllowed = true }: {
   location: Location; navigate(next: Location): void; view: Preferences['defaultView']; onView(view: Preferences['defaultView']): void;
-  loading: boolean; refresh(): void; search: ReactNode; selecting: boolean; selected: boolean; onSelecting(): void;
+  loading: boolean; refresh(): void; search: ReactNode; selecting: boolean; selected: boolean; onSelecting(): void; selectionAllowed?: boolean;
 }) {
   return <>{search}<div className="file-toolbar local-toolbar" role="group" aria-label="檔案工具列" hidden={selected}>
     <span className="toolbar-context">{location.filter ? `名稱包含「${location.filter}」` : '目前目錄'}</span>
     <div className="local-controls">
-      <Button type="text" className="selection-mode-toggle" aria-label="選取項目" title="選取項目" aria-pressed={selecting} onClick={onSelecting}><ToolIcon name="select"/><span>選取</span></Button>
+      <Button type="text" className="selection-mode-toggle" aria-label="選取項目" title="選取項目" aria-pressed={selecting} disabled={!selectionAllowed} onClick={onSelecting}><ToolIcon name="select"/><span>選取</span></Button>
       <ViewControl view={view} onView={onView}/>
       <Button type="text" data-file-refresh aria-label="重新整理" title="重新整理" onClick={refresh} disabled={loading}><ToolIcon name="refresh"/><span className="toolbar-label">重新整理</span></Button>
       <Dropdown trigger={['click']} menu={{items:sortItems(location),onClick:({key})=>applySort(location,navigate,key)}}><Button type="text" className="toolbar-sort" aria-label="排序選項" title="排序選項"><ToolIcon name="sort"/><span className="toolbar-label">排序選項</span></Button></Dropdown>

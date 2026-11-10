@@ -35,6 +35,7 @@ export function errorText(error: unknown): string {
     case 'RESOURCE_LIMIT': return '資源超過目前限制，請縮小操作範圍或聯絡管理員。';
     case 'RATE_LIMITED': return '登入嘗試過於頻繁，請稍後再試。';
     case 'SERVICE_UNAVAILABLE': return '入口或服務暫時無法使用，請確認連線後重試。';
+    case 'REMOTE_UNAVAILABLE': return '遠端來源暫時無法使用，請確認該主機的連線與分享授權後重試。';
     case 'MUTATION_BUSY': return '此位置有未完成操作，請稍後再試或聯絡管理員確認。';
     case 'MUTATION_UNCERTAIN': return '操作結果需要管理員確認，請勿重複送出。';
     case 'WRITE_UNSUPPORTED': return '此環境不支援寫入，請使用 Linux 部署。';

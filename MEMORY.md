@@ -8,6 +8,8 @@
 
 - P11.2 的 RemoteService 與原本 EntryService 分工，避免把遠端入口當成實體 FS 根路徑。只有 listing／metadata 選用遠端 reader，其餘本機服務由原本授權拒絕未知 entry。C 的 401／403 映射遠端來源錯誤，不能讓前端把 C session 失效當成 A 登入過期。來源設定、C Cookie 與授權秘密只留在 A 後端。
 
+- P11.3 的遠端 UI 重用 Workspace／FileListing 三種檢視，以能力停用不可執行的動作，且不載入本機上傳佇列或垃圾桶。名稱篩選可用，遞迴搜尋停用；C 故障顯示來源錯誤，仍可切回 A。隔離 Linux 三視窗已驗真實 A／C，瀏覽器只向 A 請求；原 8088 的資料與映像另行管理，不把隔離測試當作使用者分頁交付。
+
 ## Compose 連接埠與登入
 
 - Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際瀏覽器來源，內網 HTTP 必須明確啟用 `FILEHUB_ALLOW_LAN_HTTP=true`。`FILEHUB_PUBLIC_ORIGIN` 只填協定、主機與埠。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。

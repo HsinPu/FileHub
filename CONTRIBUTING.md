@@ -4,7 +4,7 @@
 
 FileHub 新版已選定 Node.js、TypeScript、Fastify，以及 Vitest 與 Playwright。管理資料庫採 SQLite（WAL）；第一版正式部署為單台 Linux 主機，以 Docker Compose 啟動同一 image 的 `api`、`worker` 兩個服務，各一個實例。開發採小份、可驗證的功能切片：先固定行為與錯誤契約，再實作、驗證並提交。
 
-P0–P10 共 70 份工作已完成，目前程式版本 `0.42.0`／schema 13。P10.8 以隔離環境驗證內網 HTTP 與 `/FileHub/`（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入，Windows 開發唯讀。平台與掛載範圍依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
+P0–P10 共 70 份工作已完成，目前程式版本 `0.42.1`／schema 13。P10.8 以隔離環境驗證內網 HTTP 與 `/FileHub/`（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入，Windows 開發唯讀。平台與掛載範圍依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
 H 圖像品牌及 320px 工具列修正見 P10.1（本機 `docs/validation/P10.1.md`），全畫面對齊稽核見 P10.6（本機 `docs/validation/P10.6.md`）。
 
@@ -240,7 +240,7 @@ Coverage 用來發現未測分支；不以單一百分比取代有意義的權�
 
 ## 10. 版本、文件與提交
 
-程式變更依 SemVer 處理：不相容變更新增 MAJOR，向下相容功能新增 MINOR，Bug／相容修正新增 PATCH。根 package.json 作版本來源，目前 `0.42.0`，三個 private workspace 同版；DB schema revision 獨立管理，目前為 13。發行時同步 Docker label、Compose／env 的預設 image tag；Compose fixture 從根版本讀取，`check:project` 核對一致性。純文件不增加版號。
+程式變更依 SemVer 處理：不相容變更新增 MAJOR，向下相容功能新增 MINOR，Bug／相容修正新增 PATCH。根 package.json 作版本來源，目前 `0.42.1`，三個 private workspace 同版；DB schema revision 獨立管理，目前為 13。發行時同步 Docker label、Compose／env 的預設 image tag；Compose fixture 從根版本讀取，`check:project` 核對一致性。純文件不增加版號。
 
 每個切片完成後，同步使用者文件與實際有變更的架構／知識／設計文件，只記錄已驗證、可長期使用的結論。提交說明需涵蓋改變的行為、原因、驗證結果與尚未覆蓋的條件。
 

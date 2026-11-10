@@ -33,6 +33,7 @@ apps/web/build/**
 **/.git
 **/.git/**
 **/.aws/**
+**/remote-sources.json
 **/.codex/**
 **/.agents/**
 !.env.example

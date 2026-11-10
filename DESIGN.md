@@ -4,9 +4,13 @@
 
 ## 現況與用途
 
-目前程式版本為 `0.42.0`，P10.1 的 H 品牌與 P10.2 白色畫布依下節規格；8088 已依 P10.7（本機 `docs/validation/P10.7.md`）交付 0.40.18；H 品牌及白底交付歷史見 P10.4（本機 `docs/validation/P10.4.md`）。P0–P8 的 React／Ant Design 介面已交付。P8 依使用者要求還原 File Browser 實際畫面，完整審查、65 張原圖、尺寸與來源見[全畫面參考](docs/reviews/filebrowser-visual-reference.md)；整體驗收與正式交付依 P8.9／P8.10。使用者另要求研究仍不協調的設計並提出 P9；下節核准方向及[獨立預覽](docs/design/P9/README.md)已備妥，**P9.1–P9.9 已完成實作、完整驗收與 8088 保留資料交付**。
+目前程式版本為 `0.42.1`，P10.1 的 H 品牌與 P10.2 白色畫布依下節規格；8088 已依 P10.7（本機 `docs/validation/P10.7.md`）交付 0.40.18；H 品牌及白底交付歷史見 P10.4（本機 `docs/validation/P10.4.md`）。P0–P8 的 React／Ant Design 介面已交付。P8 依使用者要求還原 File Browser 實際畫面，完整審查、65 張原圖、尺寸與來源見[全畫面參考](docs/reviews/filebrowser-visual-reference.md)；整體驗收與正式交付依 P8.9／P8.10。使用者另要求研究仍不協調的設計並提出 P9；下節核准方向及[獨立預覽](docs/design/P9/README.md)已備妥，**P9.1–P9.9 已完成實作、完整驗收與 8088 保留資料交付**。
 
 前端與公開契約的工程邊界依 [ARCHITECTURE.md](ARCHITECTURE.md)，後續實作順序依[主計畫](IMPLEMENTATION_PLAN.md)，測試與實際畫面驗收流程依 [CONTRIBUTING.md](CONTRIBUTING.md)。React／TypeScript／Ant Design、後端與資料安全契約繼續沿用；第三種檢視偏好已依 P8.3 明確變更，P9 不增加新值。
+
+## 遠端 FileHub 入口：P11
+
+遠端入口沿用工作空間與 FileListing，在儲存入口名稱下標示「遠端 FileHub」。資料夾導覽、列表／圖磚／圖庫、排序與分頁共用既有元件，唯讀能力由 API 回傳的能力決定。來源錯誤留在目前檔案區域，可切回本機入口。遠端入口提供目前目錄名稱篩選，遞迴搜尋選項為停用；選取、上傳及新建按鈕依可用能力呈現，垃圾桶入口只供本機來源。
 
 ## 第一行對齊與全頁複核：P10.7
 
