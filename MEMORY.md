@@ -10,7 +10,7 @@
 
 - P11.3 的遠端 UI 重用 Workspace／FileListing 三種檢視，以能力停用不可執行的動作，且不載入本機上傳佇列或垃圾桶。名稱篩選可用，遞迴搜尋停用；C 故障顯示來源錯誤，仍可切回 A。隔離 Linux 三視窗已驗真實 A／C，瀏覽器只向 A 請求；原 8088 的資料與映像另行管理，不把隔離測試當作使用者分頁交付。
 
-- P11.4 的遠端相對路徑使用 Linux 名稱規則，C 再驗自己的平台；不能以 Windows 上的 A 拒絕 C 的 `con`、冒號或尾點等合法 Linux 名稱。本機 scoped FS 的預設平台規則不變。C session 的並行舊錯誤只清除實際失效的 cookie，不能清除更新的 session；四份 admission、關閉中止、錯誤清單與跨平台名稱均有回歸。
+- P11.4 已驗 Windows 上的 A 可瀏覽 C 的 `con`、`reports:2026` 與 `trailing.`。分享相對路徑的首段仍受 `relativePath` 的磁碟機代號檢查，C 的完整路徑與 A 接收的分享相對路徑可能得出不同結果。審查需比對 C 公開清單與 A 代理清單。C session 的舊錯誤只清除相同的 cookie。個別瀏覽取消與服務關閉需各自驗證，因為前者可能仍在等待共用登入。[已確認缺陷](IMPLEMENTATION_PLAN.md#已確認缺陷)
 
 - P11 常規 Compose 測試 A／C 都使用當版 image；舊版 C 相容性透過選配 `FILEHUB_TEST_REMOTE_IMAGE` 明確指定，空值及未設定都回當版，避免乾淨 CI 隱性依賴本機歷史 image。0.42.2 已驗同版與 0.41.0 C；實際 LAN／其他 OS、TLS 憑證環境及使用者資料需另簽收。來源私有設定須放在已註冊入口之外，A 備份不包含 C 的原檔。
 
