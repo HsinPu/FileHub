@@ -4,7 +4,7 @@ import { SHARE_LIMITS,type Share,type ShareCreate,type ListQuery,type ResourceMe
 import type { FileHubDatabase } from '../../persistence/database.js';
 import { shares,shareSessions,shareThrottle,users } from '../../persistence/schema.js';
 import { PublicError } from '../../plugins/errors.js';
-import { openScoped,relativePath,type ScopedAnchor } from '../../storage/scoped.js';
+import { openScoped, relativePath, shareRelativePath, type ScopedAnchor } from '../../storage/scoped.js';
 import { hashPassword,verifyPassword } from '../identity/password.js';
 import type { EntryService } from '../entries/service.js';
 import { fingerprint,type FileService } from '../files/service.js';
@@ -52,7 +52,11 @@ export class ShareService {
     this.ready();if(!secretValid(token))throw new PublicError('UNAUTHORIZED');const grant=this.database.db.select().from(shareSessions).where(eq(shareSessions.tokenHash,digest(token))).get();if(!grant||grant.shareId!==id||grant.expiresAt<=this.now())throw new PublicError('UNAUTHORIZED');return this.active(id);
   }
   anchor(row:Row):ScopedAnchor{return{path:row.path,device:row.device,inode:row.inode,birthtimeNs:row.birthtimeNs};}
-  private path(row:Row,path:string){const relative=relativePath(path);if(row.kind==='file'&&relative)throw new PublicError('NOT_FOUND');return relative?`${row.path}/${relative}`:row.path;}
+  private path(row: Row, path: string): string {
+    const relative = shareRelativePath(path);
+    if (row.kind === 'file' && relative) throw new PublicError('NOT_FOUND');
+    return relative ? `${row.path}/${relative}` : row.path;
+  }
   private async source(row:Row,signal?:AbortSignal){try{await this.files.metadata(row.userId,row.entryId,row.path,signal,this.anchor(row));}catch(error){publicError(error);}}
   async challenge(id:string,secret:string|undefined,token:string|undefined,signal?:AbortSignal){const row=secret===undefined?this.authorize(id,token):this.bySecret(id,secret);await this.source(row,signal);this.active(id);return{passwordProtected:row.passwordHash!==null,expiresAt:new Date(row.expiresAt).toISOString()};}
   private reserve(ip:string,id:string){
@@ -75,7 +79,20 @@ export class ShareService {
   }
   private publicResource(row:Row,resource:ResourceMetadata){if(resource.kind!=='file'&&resource.kind!=='directory')throw new PublicError('NOT_FOUND');return{name:resource.path===row.path?row.name:resource.name,path:resource.path===row.path?'':resource.path.slice(row.path.length+1),kind:resource.kind,size:resource.size,modifiedAt:resource.modifiedAt,version:resource.version,canBrowse:resource.canBrowse,canDownload:resource.canDownload};}
   async metadata(id:string,token:string|undefined,path:string,signal?:AbortSignal){const row=this.authorize(id,token);try{const result=await this.files.metadata(row.userId,row.entryId,this.path(row,path),signal,this.anchor(row));this.authorize(id,token);return this.publicResource(row,result.resource);}catch(error){return publicError(error);}}
-  async listPublic(id:string,token:string|undefined,path:string,options:ListQuery,signal?:AbortSignal){const row=this.authorize(id,token);if(row.kind!=='directory')throw new PublicError('NOT_FOUND');try{const result=await this.files.list(row.userId,row.entryId,this.path(row,path),options,signal,this.anchor(row),true);this.authorize(id,token);return{path:relativePath(path),version:result.version,items:result.items.map(item=>this.publicResource(row,item)),total:result.total,offset:result.offset,limit:result.limit,hasMore:result.hasMore,omitted:result.omitted};}catch(error){return publicError(error);}}
+  async listPublic(id: string, token: string | undefined, path: string, options: ListQuery, signal?: AbortSignal) {
+    const row = this.authorize(id, token);
+    if (row.kind !== 'directory') throw new PublicError('NOT_FOUND');
+    try {
+      const result = await this.files.list(row.userId, row.entryId, this.path(row, path), options, signal, this.anchor(row), true);
+      this.authorize(id, token);
+      return {
+        path, version: result.version, items: result.items.map(item => this.publicResource(row, item)),
+        total: result.total, offset: result.offset, limit: result.limit, hasMore: result.hasMore, omitted: result.omitted,
+      };
+    } catch (error) {
+      return publicError(error);
+    }
+  }
   async openDownload(id:string,token:string|undefined,path:string,version:string|undefined,signal:AbortSignal){const row=this.authorize(id,token),target=this.path(row,path);try{const opened=await this.files.openDownload(row.userId,row.entryId,target,version,signal,this.anchor(row));
     try{this.authorize(id,token);return{...opened,resource:this.publicResource(row,opened.resource),check:async()=>{const current=this.authorize(id,token),access=this.entries.authorize(current.userId,current.entryId,target,'download'),source=await openScoped(access.root,current.path,false,this.anchor(current));try{await source.verify();}finally{await source.close();}if(signal.aborted)throw new PublicError('SERVICE_UNAVAILABLE');this.authorize(id,token);}};}catch(error){await opened.close();throw error;}
   }catch(error){return publicError(error);}}

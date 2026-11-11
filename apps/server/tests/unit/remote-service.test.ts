@@ -17,7 +17,7 @@ function send(response: ServerResponse, value: unknown, status = 200) {
   response.end(JSON.stringify(value));
 }
 
-async function fixture() {
+async function fixture(rootNames = ['reports:2026', 'con', 'trailing.']) {
   const storage = await databaseFixture();
   storage.migrate();
   const database = storage.open(), user = await new IdentityService(database).bootstrap('admin', 'Synthetic-remote-service-123!');
@@ -25,11 +25,14 @@ async function fixture() {
   let accesses = 0;
   const paths: string[] = [], held: ServerResponse[] = [];
   let hold = false, override: unknown;
-  const server = createServer((request, response) => {
+  let accessGate: Promise<undefined> | undefined;
+  const server = createServer(async (request, response) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
     if (url.pathname.endsWith('/access')) {
-      accesses++;
-      response.setHeader('set-cookie', cookieName + '=' + (accesses === 1 ? 'A' : 'B').repeat(43) + '; HttpOnly');
+      const cookie = (++accesses === 1 ? 'A' : 'B').repeat(43);
+      await accessGate;
+      if (response.destroyed) return;
+      response.setHeader('set-cookie', cookieName + '=' + cookie + '; HttpOnly');
       send(response, { name: 'C', kind: 'directory', passwordProtected: false, expiresAt: new Date(Date.now() + 86400000).toISOString() });
       return;
     }
@@ -38,7 +41,7 @@ async function fixture() {
     if (hold) { held.push(response); return; }
     if (override !== undefined) { send(response, override); return; }
     if (url.pathname.endsWith('/resource')) { send(response, resource(path)); return; }
-    const items = path ? [resource(path + '/a?.txt', 'file')] : ['reports:2026', 'con', 'trailing.'].map(name => resource(name));
+    const items = path ? [resource(path + '/a?.txt', 'file')] : rootNames.map(name => resource(name));
     send(response, { path, version, items, total: items.length, offset: 0, limit: 50, hasMore: false, omitted: 0 });
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -56,21 +59,62 @@ async function fixture() {
   const remotes = new RemoteService(database, sources);
   onTestFinished(() => remotes.close());
   return { remotes, user, sourceId, paths, held, hold: (value: boolean) => { hold = value; }, accesses: () => accesses,
-    response: (value: unknown) => { override = value; } };
+    response: (value: unknown) => { override = value; },
+    holdAccess() {
+      const gate = Promise.withResolvers<undefined>();
+      accessGate = gate.promise;
+      return () => {
+        accessGate = undefined;
+        gate.resolve(undefined);
+      };
+    },
+  };
 }
 
 test('A 的作業系統不限制 C 的合法 Linux 名稱，仍在傳輸前拒絕越界及私有路徑', async () => {
-  const f = await fixture();
+  const f = await fixture(['reports:2026', 'con', 'trailing.', 'a:2026']);
   const listing = await f.remotes.list(f.user.id, f.sourceId, '', {});
-  expect(listing.items.map(item => item.path)).toEqual(['reports:2026', 'con', 'trailing.']);
+  expect(listing.items.map(item => item.path)).toEqual(['reports:2026', 'con', 'trailing.', 'a:2026']);
   const nested = await f.remotes.list(f.user.id, f.sourceId, 'reports:2026', {});
   expect(nested.items[0]?.path).toBe('reports:2026/a?.txt');
   expect((await f.remotes.metadata(f.user.id, f.sourceId, 'con')).resource.path).toBe('con');
-  expect(f.paths).toEqual(['', 'reports:2026', 'con']);
+  expect((await f.remotes.list(f.user.id, f.sourceId, 'a:2026', {})).items[0]?.path).toBe('a:2026/a?.txt');
+  expect((await f.remotes.metadata(f.user.id, f.sourceId, 'a:2026')).resource.path).toBe('a:2026');
+  expect(f.paths).toEqual(['', 'reports:2026', 'con', 'a:2026', 'a:2026']);
   for (const path of ['../outside', '.filehub/secret']) {
     await expect(f.remotes.list(f.user.id, f.sourceId, path, {})).rejects.toMatchObject({ code: 'BAD_REQUEST' });
   }
-  expect(f.paths).toHaveLength(3);
+  expect(f.paths).toHaveLength(5);
+});
+
+test('等候 C 登入時取消一份瀏覽會釋放名額，其他瀏覽仍使用同一個登入', async () => {
+  const f = await fixture();
+  const releaseAccess = f.holdAccess();
+  const stop = new AbortController();
+  let cancellation: unknown;
+  const canceled = f.remotes.list(f.user.id, f.sourceId, '', {}, stop.signal).catch((error: unknown) => { cancellation = error; });
+  const waiting = Promise.allSettled(Array.from({ length: 3 }, () => f.remotes.list(f.user.id, f.sourceId, '', {})));
+  try {
+    await expect.poll(f.accesses).toBe(1);
+    stop.abort();
+    await expect.poll(() => cancellation, { timeout: 1000 }).toMatchObject({ code: 'REMOTE_UNAVAILABLE' });
+    expect(f.paths).toHaveLength(0);
+    const next = Promise.allSettled([f.remotes.list(f.user.id, f.sourceId, '', {})]);
+    releaseAccess();
+    expect([...(await waiting), ...(await next)].map(result => result.status)).toEqual(Array(4).fill('fulfilled'));
+    expect(f.accesses()).toBe(1);
+    expect(f.paths).toHaveLength(4);
+  } finally {
+    releaseAccess();
+    await canceled;
+    await waiting;
+  }
+});
+
+test('已取消的瀏覽不啟動 C 登入', async () => {
+  const f = await fixture();
+  await expect(f.remotes.list(f.user.id, f.sourceId, '', {}, AbortSignal.abort())).rejects.toMatchObject({ code: 'REMOTE_UNAVAILABLE' });
+  expect(f.accesses()).toBe(0);
 });
 
 test('晚到的舊 C session 拒絕不清除已更新的 session，並行登入只建立一次', async () => {

@@ -4,7 +4,7 @@ B 的瀏覽器登入 A，從 A 工作空間切換本機入口及「遠端 FileHu
 
 ## 在 C 準備資料夾授權
 
-使用 C 的 FileHub 0.41.0 或相容的更新版本，登入後選取要提供的資料夾，建立無密碼分享並保存完整連結。分享最長 30 天，撤銷、到期、來源替換或 owner 失去授權後，A 的存取也會停止。
+使用 C 的 FileHub 0.41.0 或相容的更新版本，登入後選取要提供的資料夾，建立無密碼分享並保存完整連結。分享最長 30 天，撤銷、到期、來源替換或 owner 失去授權後，A 的存取也會停止。A 升級至 0.42.3 後可顯示舊版 C 清單中的冒號檔名。若要開啟分享根目錄下以單一英文字母加冒號起頭的資料夾，例如 `a:2026`，C 使用 0.42.3 或相容更新版。
 
 來源 URL 使用 C 實際的瀏覽器網址，例如 `http://192.168.1.20:8088/FileHub/?share=…#…`。確認 C 的 `FILEHUB_PUBLIC_ORIGIN` 與該網址的協定、主機及埠相符，內網 HTTP 依[登入來源設定](identity.md#同源設定與-http-契約)明確啟用。
 
@@ -25,7 +25,7 @@ sudoedit /srv/filehub-config/remote-sources.json
 | `id` | A 上固定且唯一的 UUID，避免與本機入口 ID 重複 |
 | `label` | 工作空間顯示名稱，例如「C 的檔案」 |
 | `url` | C 的完整資料夾分享連結，包含 fragment 中的授權秘密 |
-| `address` | C 的固定 IP。hostname 來源也明確指定連線 IP，HTTPS 保留憑證與 hostname 驗證 |
+| `address` | C 的固定 IP。hostname 來源也明確指定連線 IP，HTTPS 保留憑證與 hostname 驗證。URL 使用 IPv6 時，兩處可用同一位址的壓縮或展開寫法 |
 | `allowHttp` | 在可信內網使用 HTTP 時明確設定 `true` |
 | `users` | 可瀏覽的 A member 帳號名稱，小寫。A 的 admin 可使用所有已設定來源 |
 

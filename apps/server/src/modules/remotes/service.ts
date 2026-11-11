@@ -8,7 +8,7 @@ import {
 import type { FileHubDatabase } from '../../persistence/database.js';
 import { entries, users } from '../../persistence/schema.js';
 import { PublicError } from '../../plugins/errors.js';
-import { relativePath } from '../../storage/scoped.js';
+import { shareRelativePath } from '../../storage/scoped.js';
 import { publicCookieName } from '../shares/routes.js';
 import type { RemoteSource } from './config.js';
 import { remoteRequest } from './transport.js';
@@ -20,7 +20,7 @@ function resource(value: PublicShareResource): ResourceMetadata {
 }
 
 function matchesPath(path: string, expected: string): boolean {
-  try { return relativePath(path, false, 'linux') === expected; }
+  try { return shareRelativePath(path, 'linux') === expected; }
   catch { return false; }
 }
 
@@ -73,6 +73,7 @@ export class RemoteService {
       this.sessions.delete(source.id);
     }
     if (Check(ApiErrorResponseSchema, response.value)) {
+      if (response.status === 400 && response.value.code === 'BAD_REQUEST') throw new PublicError('BAD_REQUEST');
       if (response.status === 409 && response.value.code === 'CONFLICT') throw new PublicError('CONFLICT');
       if (response.status === 404 && response.value.code === 'NOT_FOUND') throw new PublicError('NOT_FOUND');
     }
@@ -104,18 +105,30 @@ export class RemoteService {
     return task;
   }
 
+  private async waitForSession(source: RemoteSource, signal: AbortSignal): Promise<RemoteSession> {
+    if (signal.aborted) throw new PublicError('REMOTE_UNAVAILABLE');
+    const canceled = Promise.withResolvers<never>();
+    const abort = () => canceled.reject(new PublicError('REMOTE_UNAVAILABLE'));
+    signal.addEventListener('abort', abort, { once: true });
+    try {
+      return await Promise.race([this.session(source), canceled.promise]);
+    } finally {
+      signal.removeEventListener('abort', abort);
+    }
+  }
+
   private async run<T>(userId: string, id: string, path: string, signal: AbortSignal | undefined,
     read: (source: RemoteSource, path: string, cookie: string, signal: AbortSignal) => Promise<T>): Promise<T> {
     const source = this.authorized(userId, id)[0];
     if (!source) throw new PublicError('NOT_FOUND');
     // Remote paths never address A's filesystem; C validates its own platform-specific names.
-    const normalized = relativePath(path, false, 'linux');
+    const normalized = shareRelativePath(path, 'linux');
     if (this.closing.signal.aborted || this.active >= 4) throw new PublicError('REMOTE_UNAVAILABLE');
     this.active++;
     return this.track((async () => {
       try {
         const deadline = AbortSignal.any([this.closing.signal, AbortSignal.timeout(5000), ...(signal ? [signal] : [])]);
-        const session = await this.session(source);
+        const session = await this.waitForSession(source, deadline);
         if (deadline.aborted) throw new PublicError('REMOTE_UNAVAILABLE');
         const result = await read(source, normalized, session.cookie, deadline);
         if (!this.authorized(userId, id).length) throw new PublicError('NOT_FOUND');

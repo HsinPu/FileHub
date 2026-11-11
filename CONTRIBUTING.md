@@ -4,7 +4,7 @@
 
 FileHub 新版已選定 Node.js、TypeScript、Fastify，以及 Vitest 與 Playwright。管理資料庫採 SQLite（WAL）；第一版正式部署為單台 Linux 主機，以 Docker Compose 啟動同一 image 的 `api`、`worker` 兩個服務，各一個實例。開發採小份、可驗證的功能切片：先固定行為與錯誤契約，再實作、驗證並提交。
 
-P0–P10 共 70 份工作及 P11.1–P11.4 均已完成，合計 74 份，目前程式版本 `0.42.2`／schema 13。P10.8 以隔離環境驗證內網 HTTP 與 `/FileHub/`（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入，Windows 開發唯讀。平台與掛載範圍依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
+P0–P10 共 70 份工作及 P11.1–P11.5 均已完成，合計 75 份，目前程式版本 `0.42.3`／schema 13。P10.8 以隔離環境驗證內網 HTTP 與 `/FileHub/`（本機 `docs/validation/P10.8.md`）。本機 8088 依 P10.7 交付 0.40.18，進度見[主計畫](IMPLEMENTATION_PLAN.md)。Linux 寫入，Windows 開發唯讀。平台與掛載範圍依跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
 H 圖像品牌及 320px 工具列修正見 P10.1（本機 `docs/validation/P10.1.md`），全畫面對齊稽核見 P10.6（本機 `docs/validation/P10.6.md`）。
 
@@ -205,7 +205,7 @@ P0.6 實作使用 Playwright per-test fixture 自建 file-backed DB／migration 
 | `start:worker` | P0.4 已提供 | 執行已編譯 worker；共用可選 .env、DB／log／關閉設定，初始 DB 未就緒時非零退出，不解析 API host／port |
 | `test:e2e` | P0.6 已提供 | 先 build，再以 per-test 的真實 DB／編譯 API／動態埠與 browser context 驗三視窗；需要已安裝 browser，不 skip |
 | `test:system` | P0.7 已擴充 | 先 build，驗正式 API／worker 程序／CLI、入口無副作用及共用 fixture 清理防護；排除 compose project |
-| `test:compose` | P0.7 已收斂 | 先 build，再用根版本對應的預建 image 驗 migration gate、健康、UID／掛載、SIGTERM／SIGSTOP、持久化與 DB 還原。最近正式 Compose 為 P11／0.42.2，涵蓋 `/FileHub/` 資源及兩套 FileHub 的遠端瀏覽。發行 migration 矩陣 4／4 屬 P10.4／0.40.16 |
+| `test:compose` | P0.7 已收斂 | 先 build，再用根版本對應的預建 image 驗 migration gate、健康、UID／掛載、SIGTERM／SIGSTOP、持久化與 DB 還原。最近正式 Compose 為 P11.5／0.42.3，涵蓋 `/FileHub/` 資源及兩套 FileHub 的遠端瀏覽。發行 migration 矩陣 4／4 屬 P10.4／0.40.16 |
 | `check:project` | P0.7 已提供 | 核對 Node／工具鏈、四個 private packages 同版、直接依賴精確版本及 image tag／label |
 | `test:integration:run`／`test:e2e:run` | P0.7 已提供 | 執行已完整 build 產物的測試；總驗收避免重複 build |
 | `test:compose:build`／`test:compose:run` | P0.7 已提供 | 前者以根版本 tag 建正式共用 image；後者只跑隔離 Compose cases |
@@ -242,7 +242,7 @@ Coverage 用來發現未測分支；不以單一百分比取代有意義的權�
 
 ## 10. 版本、文件與提交
 
-程式變更依 SemVer 處理：不相容變更新增 MAJOR，向下相容功能新增 MINOR，Bug／相容修正新增 PATCH。根 package.json 作版本來源，目前 `0.42.2`，三個 private workspace 同版；DB schema revision 獨立管理，目前為 13。發行時同步 Docker label、Compose／env 的預設 image tag；Compose fixture 從根版本讀取，`check:project` 核對一致性。純文件不增加版號。
+程式變更依 SemVer 處理：不相容變更新增 MAJOR，向下相容功能新增 MINOR，Bug／相容修正新增 PATCH。根 package.json 作版本來源，目前 `0.42.3`，三個 private workspace 同版；DB schema revision 獨立管理，目前為 13。發行時同步 Docker label、Compose／env 的預設 image tag；Compose fixture 從根版本讀取，`check:project` 核對一致性。純文件不增加版號。
 
 每個切片完成後，同步使用者文件與實際有變更的架構／知識／設計文件，只記錄已驗證、可長期使用的結論。提交說明需涵蓋改變的行為、原因、驗證結果與尚未覆蓋的條件。
 

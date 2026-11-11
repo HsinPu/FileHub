@@ -15,7 +15,10 @@ test('正式 A image 以私有唯讀設定瀏覽 C，C 離線時 A 保持就緒'
     try{
       const identity=new IdentityService(db),user=await identity.bootstrap('admin','Synthetic-compose-remote-123!');
       await mkdir('/data/files/published/nested',{recursive:true});
+      await mkdir('/data/files/published/a:2026',{recursive:true});
       await writeFile('/data/files/published/nested/C-proof.txt','C canary');
+      await writeFile('/data/files/published/a:2026.txt','C canary');
+      await writeFile('/data/files/published/a:2026/inside.txt','C canary');
       const entries=new EntryService(db),entry=await entries.register('managed','C','/data/files'),files=new FileService(entries);
       const secret=randomBytes(32).toString('base64url'),id=randomUUID(),path='published';
       await new ShareService(db,entries,files).create(user.id,{id,secret,entryId:entry.id,path,version:(await files.metadata(user.id,entry.id,path)).resource.version,expiresAt:new Date(Date.now()+86400000).toISOString()});
@@ -61,9 +64,30 @@ test('正式 A image 以私有唯讀設定瀏覽 C，C 離線時 A 保持就緒'
   expect(entryResponse.status).toBe(200);
   expect(JSON.parse(text)).toMatchObject({ entries: [{ id: sourceId, kind: 'remote', readOnly: true }] });
   expect(text).not.toContain(input.secret);
-  const listing = await get('/api/entries/' + sourceId + '/files?path=nested');
+  const remote = '/api/entries/' + sourceId;
+  const root = await get(remote + '/files');
+  expect(root.status).toBe(200);
+  expect(await root.json()).toMatchObject({ total: 3, items: [
+    { path: 'a:2026', kind: 'directory' },
+    { path: 'nested', kind: 'directory' },
+    { path: 'a:2026.txt', kind: 'file', canDownload: false },
+  ] });
+  const listing = await get(remote + '/files?path=nested');
   expect(listing.status).toBe(200);
   expect(await listing.json()).toMatchObject({ items: [{ name: 'C-proof.txt', path: 'nested/C-proof.txt', canDownload: false, canWrite: false }] });
+  if (cImage === image) {
+    const path = new URLSearchParams({ path: 'a:2026' });
+    const directory = await get(remote + '/files?' + path);
+    expect(directory.status).toBe(200);
+    expect(await directory.json()).toMatchObject({ path: 'a:2026', items: [{ path: 'a:2026/inside.txt' }] });
+    const metadata = await get(remote + '/metadata?' + path);
+    expect(metadata.status).toBe(200);
+    expect(await metadata.json()).toMatchObject({ resource: { path: 'a:2026', canBrowse: true } });
+  } else if (cImage === 'filehub:0.41.0') {
+    const directory = await get(remote + '/files?' + new URLSearchParams({ path: 'a:2026' }));
+    expect(directory.status).toBe(400);
+    expect(await directory.json()).toMatchObject({ code: 'BAD_REQUEST' });
+  }
   await c.compose(['stop', 'api']);
   expect((await get('/api/entries/' + sourceId + '/files')).status).toBe(503);
   expect((await get('/health/ready')).status).toBe(200);

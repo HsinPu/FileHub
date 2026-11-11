@@ -4,7 +4,7 @@
 
 本文件是新版 FileHub 從 P0 開始的實作順序與進度依據。後續每次開工先選定這裡的一份工作，依指定參考、修改位置及驗收條件完成，再更新狀態並 commit。
 
-建立於 2026-10-27。**P0–P9 已完成 62 份，加上 P10.1–P10.8 共 70 份，P11.1–P11.4 完成後合計 74 份，程式版本 `0.42.2`／schema 13。** P10.8 在隔離環境驗證內網 HTTP 與 `/FileHub/`。本機 8088 的交付版本依 P10.7 為 `0.40.18`。P8 的 [File Browser 全畫面還原](docs/reviews/filebrowser-visual-reference.md)與驗收保留歷史；P9 的[設計研究](docs/reviews/p9-design-review.md)已完成實作與保留資料交付。P10.3 於 2026-11-04 完成視覺驗收及原圖判讀更正；P10.4 已完成正式交付。原始計畫功能對照、最新結果及缺口見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。歷史功能驗收依 P6.4（本機 `docs/validation/P6.4.md`）及跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
+建立於 2026-10-27。**P0–P9 已完成 62 份，加上 P10.1–P10.8 共 70 份，P11.1–P11.5 完成後合計 75 份，程式版本 `0.42.3`／schema 13。** P10.8 在隔離環境驗證內網 HTTP 與 `/FileHub/`。本機 8088 的交付版本依 P10.7 為 `0.40.18`。P8 的 [File Browser 全畫面還原](docs/reviews/filebrowser-visual-reference.md)與驗收保留歷史；P9 的[設計研究](docs/reviews/p9-design-review.md)已完成實作與保留資料交付。P10.3 於 2026-11-04 完成視覺驗收及原圖判讀更正；P10.4 已完成正式交付。原始計畫功能對照、最新結果及缺口見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。歷史功能驗收依 P6.4（本機 `docs/validation/P6.4.md`）及跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
 ## 計畫放置與使用方式
 
@@ -393,7 +393,7 @@ P10.1 程式版本為 0.40.15，P10.2 的白底外觀修正增加 PATCH 至 0.40
 
 ## P11 透過 A 瀏覽 A 與 C 的檔案
 
-P11.1–P11.4 於 2026-11-10 完成。2026-11-09 使用者確認以下需求。
+P11.1–P11.4 於 2026-11-10 完成，P11.5 於 2026-11-11 完成缺陷修正。2026-11-09 使用者確認以下需求。
 
 - B 是使用瀏覽器的電腦，A 與 C 都安裝 FileHub。
 - B 登入 A，在 A 的同一個介面切換瀏覽 A 與 C 的資料夾及檔案清單。
@@ -409,17 +409,18 @@ P11.1–P11.4 於 2026-11-10 完成。2026-11-09 使用者確認以下需求。
 | P11.2 完成 | server remote 模組、entries／files routes、contracts、config、Compose 範例 | 0.42.0／schema 13；六項新回歸、型別／Lint／正式 build 通過，含兩個獨立 DB／HTTP 服務、授權、撤銷／到期、斷線恢復及回應限制。完整與正式 Compose 驗收接 P11.4 |
 | P11.3 完成 | Workspace／入口導覽／SearchControls、DESIGN、E2E | 0.42.1；Linux Chromium 六項三視窗通過，15 張原圖、8 張代表畫面目視複核；三檢視、巢狀／刷新、名稱篩選、斷線恢復與 B 只向 A 請求已驗。原有全套回歸接 P11.4 |
 | P11.4 完成 | 正式 image／Compose、操作文件、版本與驗證摘要 | 0.42.2／schema 13；437 項核心、0.42.1 Windows 全套 222 項、0.42.2 兩平台各六項遠端瀏覽及 Linux 26 項受影響回歸通過；正式 Compose 六項及同版／0.41.0 C 專項通過。含私有唯讀掛載、離線隔離、跨平台名稱、session 並行邊界及既有資料保留，未更新原 8088 |
+| P11.5 完成 | 分享相對路徑、遠端 session 等待、來源 IP 設定 | 0.42.3／schema 13。分享根目錄列出合法 Linux 名稱，同版 C 可進入冒號目錄，0.41.0 C 可列出原有清單。取消個別瀏覽會釋放名額，等價 IPv6 實際連線通過。Windows 440 項核心分批通過，遠端 Chromium 六項、正式 Compose 六項及舊版 C 專項一項通過。本機紀錄 `docs/validation/P11.5.md` |
 
 ### 已確認缺陷
 
 2026-11-11 檢查 `0.42.2`（`2f27697`）。Windows 的 26 項既有遠端相關測試通過。檔名與取消行為以正式 Linux image 及獨立合成資料重現，IPv6 以 Windows 的來源設定解析器重現。
 
-- 分享根目錄含 `a:2026.txt` 時，C 公開清單回 200 且列出兩個檔案，A 因把 `a:` 當成磁碟機代號而回 503。篩選只保留另一個檔案時，A 恢復回 200。修正時需對齊分享清單與相對路徑規則，並驗證舊版 C 的清單相容性。[遠端清單](apps/server/src/modules/remotes/service.ts#L148)
-- C 首次授權仍在等待時，取消個別瀏覽後 250 ms 請求仍未結束，C 回覆後才釋放 A 的瀏覽名額。修正時需讓個別請求依自己的取消訊號結束，並保留其他請求共用的 C 登入。[遠端請求](apps/server/src/modules/remotes/service.ts#L113)
-- 設定中的 IPv6 展開寫法與分享 URL 的壓縮寫法指向同一位址時，A 的設定驗證仍拒絕啟動。修正時需比較正規化位址，並確認不同位址仍被拒絕。[來源設定](apps/server/src/modules/remotes/config.ts#L37)
+- 分享根目錄含 `a:2026.txt` 時，C 公開清單回 200 且列出兩個檔案，A 因把 `a:` 當成磁碟機代號而回 503。P11.5 對齊分享清單與相對路徑規則。0.41.0 C 的清單可顯示，開啟這類目錄需 0.42.3 C。[遠端清單](apps/server/src/modules/remotes/service.ts#L164)
+- C 首次授權仍在等待時，取消個別瀏覽後 250 ms 請求仍未結束，C 回覆後才釋放 A 的瀏覽名額。P11.5 讓個別請求依自己的取消訊號結束，共用的 C 登入繼續供其他請求使用。[遠端請求](apps/server/src/modules/remotes/service.ts#L108)
+- 設定中的 IPv6 展開寫法與分享 URL 的壓縮寫法指向同一位址時，A 的設定驗證仍拒絕啟動。P11.5 比較正規化位址，並驗證等價寫法可連線及異址被拒絕。[來源設定](apps/server/src/modules/remotes/config.ts#L37)
 
 ## 下一次開工入口
 
 **P0–P10 共 70 份完成。** 2026-11-05 已依 P10.7（本機 `docs/validation/P10.7.md`）將本機 8088 保留資料更新至 0.40.18。P10.8 新增內網 HTTP 部署設定，實機安裝步驟見 [README](README.md#從另一台電腦開啟-filehub)。原始需求與縮限依驗收稽核，未驗環境依跨階段矩陣。後續新需求另列計畫，每份驗證後本機 commit。
 
-P11.1–P11.4 已完成，操作依[遠端瀏覽](docs/operations/remote-browsing.md)。實際 A／C 部署仍須設定來源授權與 IP，並依使用環境簽收；新增下載、預覽、寫入或同步需求另列工作，不把清單瀏覽當作這些能力已完成。
+P11.1–P11.5 已完成。實際 A／C 部署仍須設定來源授權與 IP，並依使用環境簽收。新增下載、預覽、寫入或同步需求另列工作。[遠端瀏覽](docs/operations/remote-browsing.md)

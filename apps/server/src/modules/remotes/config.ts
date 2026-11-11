@@ -38,10 +38,15 @@ function source(value: Static<typeof SourceSchema>): RemoteSource {
   const url = new URL(value.url);
   const hostname = url.hostname.replace(/^\[|\]$/g, '');
   const addressFamily = isIP(value.address);
+  if (!addressFamily) invalid();
+  const [literal = '', zone] = value.address.split('%', 2);
+  const canonicalAddress = addressFamily === 6
+    ? new URL(`http://[${literal}]/`).hostname.slice(1, -1)
+    : literal;
   const shareId = url.searchParams.get('share');
   const secret = url.hash.slice(1);
-  if (!addressFamily || ['0.0.0.0', '::'].includes(value.address)
-    || (isIP(hostname) && hostname !== value.address)
+  if (['0.0.0.0', '::'].includes(canonicalAddress)
+    || (isIP(hostname) && (zone !== undefined || hostname !== canonicalAddress))
     || url.username || url.password
     || !['/', FILEHUB_MOUNT_PATH + '/'].includes(url.pathname)
     || [...url.searchParams].length !== 1

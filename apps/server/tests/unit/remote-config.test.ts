@@ -31,6 +31,16 @@ test('來源只接受受控目錄分享、固定 IP 與明確 HTTP opt-in，錯�
   expect(() => parseRemoteSources({ version: 1, sources: Array.from({ length: 17 }, sample) })).toThrowError();
 });
 
+test('同一 IPv6 位址的壓縮與展開寫法可用，異址與未指定的位址仍拒絕', () => {
+  const value = sample();
+  const url = value.url.replace('files.example.test', '[2001:db8::1]');
+  const parse = (address: string, origin = url) => parseRemoteSources({ version: 1, sources: [{ ...value, url: origin, address }] });
+  expect(parse('2001:0DB8:0000:0000:0000:0000:0000:0001')[0]?.origin).toBe('https://[2001:db8::1]');
+  expect(() => parse('2001:db8::2')).toThrowError('私有遠端來源設定');
+  expect(() => parse('0:0:0:0:0:0:0:0', value.url)).toThrowError('私有遠端來源設定');
+  expect(parse('fe80::1%eth0', value.url)[0]?.address).toBe('fe80::1%eth0');
+});
+
 test('啟動載入私有設定，限制大小、檔案型別與 Linux 權限；worker 不解析 API 路徑', async () => {
   const temporary = await createTemporaryDirectory('filehub-remote-config-');
   onTestFinished(() => temporary.dispose());

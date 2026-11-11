@@ -18,12 +18,22 @@ export const hasControlCharacters = (value: string) => [...value].some((characte
 const contained = (root: string, path: string) => { const value = relative(root, path); return !isAbsolute(value) && value !== '..' && !value.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`); };
 
 export const privateName = (name: string) => name.toLowerCase() === '.filehub';
-export function relativePath(value: string, internal = false, platform: NodeJS.Platform = process.platform): string {
-  if (value.length > 1024 || !value.isWellFormed() || value.includes('\\') || hasControlCharacters(value) || value.startsWith('/') || /^[A-Za-z]:/.test(value)) throw new PublicError('BAD_REQUEST');
+function validateRelativePath(value: string, internal: boolean, platform: NodeJS.Platform): string {
+  if (value.length > 1024 || !value.isWellFormed() || value.includes('\\') || hasControlCharacters(value) || value.startsWith('/')) throw new PublicError('BAD_REQUEST');
   const parts = value === '' ? [] : value.split('/');
   if (parts.length > 64 || parts.some((part) => !part || part === '.' || part === '..' || (!internal && privateName(part)) || Buffer.byteLength(part) > 255
     || (platform === 'win32' && (/[<>:"|?*]/.test(part) || /[. ]$/.test(part) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))))) throw new PublicError('BAD_REQUEST');
   return value;
+}
+
+export function relativePath(value: string, internal = false, platform: NodeJS.Platform = process.platform): string {
+  if (/^[A-Za-z]:/.test(value)) throw new PublicError('BAD_REQUEST');
+  return validateRelativePath(value, internal, platform);
+}
+
+// Callers handle these paths relative to an already authorized share root.
+export function shareRelativePath(value: string, platform: NodeJS.Platform = process.platform): string {
+  return validateRelativePath(value, false, platform);
 }
 
 function publicFsError(error: unknown, root = false): PublicError {

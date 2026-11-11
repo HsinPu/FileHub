@@ -2,7 +2,7 @@
 
 FileHub 是自行部署的網頁檔案管理工具，支援內建儲存與已掛載的外部資料夾。使用瀏覽器管理檔案、分享內容與追蹤背景工作；檔案本體保留在檔案系統，SQLite 只保存管理資料。
 
-目前版本 **0.42.2**，資料庫 schema **13**。每套 FileHub 部署在單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
+目前版本 **0.42.3**，資料庫 schema **13**。每套 FileHub 部署在單台 Linux 主機，以 Docker Compose 啟動同一 image 的 API 與 worker，各一個實例。Windows 原生環境供唯讀開發；寫入功能使用 Linux 容器。
 
 ## 主要功能
 
@@ -56,7 +56,7 @@ docker compose ps -a
 curl --fail http://127.0.0.1:8088/FileHub/health/ready
 ```
 
-這會從原始碼建置本機 `filehub:0.42.2`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟 [http://127.0.0.1:8088/FileHub/](http://127.0.0.1:8088/FileHub/)。
+這會從原始碼建置本機 `filehub:0.42.3`，先完成 migration，再啟動兩服務。預期 `migrate` 結束碼為 0，API／worker 為 healthy，健康端點回傳 `{"status":"ready"}`。在安裝 FileHub 的機器上開啟 [http://127.0.0.1:8088/FileHub/](http://127.0.0.1:8088/FileHub/)。
 
 初次安裝**沒有預設帳密**。在互動終端建立管理員，密碼由隱藏提示輸入，至少 15 字元：
 
@@ -77,7 +77,7 @@ docker compose stop api worker
 
 | 設定 | 預設／用途 |
 | --- | --- |
-| `FILEHUB_IMAGE` | `filehub:0.42.2`，三角色共用同一版本 |
+| `FILEHUB_IMAGE` | `filehub:0.42.3`，三角色共用同一版本 |
 | `FILEHUB_BIND_ADDRESS`／`FILEHUB_HTTP_PORT` | 預設 `0.0.0.0:8088`，讓 FileHub 在主機的 IPv4 網路介面接收連線 |
 | `FILEHUB_PUBLIC_ORIGIN` | 本機預設為 `http://127.0.0.1:8088`，隨 `FILEHUB_HTTP_PORT` 調整。從其他電腦登入時設定實際使用的協定、主機與埠 |
 | `FILEHUB_ALLOW_LAN_HTTP` | 預設 `false`。在受信任內網使用 HTTP 登入時設定 `true` |
@@ -94,7 +94,7 @@ docker compose stop api worker
 在 `.env` 設定以下內容，並把 `192.168.1.10` 換成 FileHub 主機的內網 IP。`FILEHUB_PUBLIC_ORIGIN` 填協定、主機和埠，`/FileHub/` 加在瀏覽器網址上。
 
 ```dotenv
-FILEHUB_IMAGE=filehub:0.42.2
+FILEHUB_IMAGE=filehub:0.42.3
 FILEHUB_BIND_ADDRESS=0.0.0.0
 FILEHUB_HTTP_PORT=8088
 FILEHUB_ALLOW_LAN_HTTP=true

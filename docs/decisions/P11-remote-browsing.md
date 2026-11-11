@@ -16,9 +16,9 @@ B 登入 A，在原有工作空間切換 A 的本機入口及 C 的遠端入口�
 
 ## 傳輸與失敗
 
-僅呼叫分享 API 的固定路由。目標 IP 固定於可信設定，使用 Node HTTP／HTTPS 的 lookup 連接指定 IP，HTTPS 仍核對 C 的憑證與 hostname。拒絕 redirects，避免來源要求 A 改連其他位置。設定與公開 API 都驗證格式，遠端路徑採既有正規化的 Linux 名稱規則，不以 A 的作業系統限制 C 的檔名；C 仍驗自己的平台及分享範圍，A 的本機 FS 規則維持不變。遠端 JSON 以公開 share schemas 驗證，回應另核對請求的 path、分頁及項目路徑。
+僅呼叫分享 API 的固定路由。目標 IP 固定於可信設定，使用 Node HTTP／HTTPS 的 lookup 連接指定 IP，HTTPS 仍核對 C 的憑證與 hostname。URL 使用 IP 時會比對正規化後的位址，接受同一 IPv6 位址的不同寫法。拒絕 redirects，避免來源要求 A 改連其他位置。A 以分享相對路徑核對清單，C 依自己的平台驗證該路徑，再接到已授權的分享根目錄。Linux 分享可接受 `a:2026` 這類名稱。遠端 JSON 以公開 share schemas 驗證，回應另核對請求的 path、分頁及項目路徑。
 
-每份瀏覽最多 5 秒，單份 JSON 最多 1 MiB，A 同時最多四份遠端操作。取消讀取及服務關閉會中止自有 socket；合併中的登入有獨立五秒期限，單一呼叫取消不取消其他呼叫共用的登入。C session 僅保留記憶體，每來源單一登入 Promise 合併並行存取，失效後由後續操作重新建立。只移除實際失效的 session，晚到的舊錯誤不清除新 session。合法的 C `NOT_FOUND`／`CONFLICT` 沿用對應錯誤碼，其他錯誤或未知回應回固定 `REMOTE_UNAVAILABLE`，不轉送上游錯誤文字、Cookie、URL 或主機路徑。
+每份瀏覽最多 5 秒，單份 JSON 最多 1 MiB，A 同時最多四份遠端操作。個別瀏覽取消時會結束自己的等待、釋放名額，並中止自己已開啟的讀取。共用的 C 登入有獨立五秒期限，服務關閉時會一併中止。C session 僅保留記憶體，每來源單一登入 Promise 合併並行存取，失效後由後續操作重新建立。只移除實際失效的 session，晚到的舊錯誤不清除新 session。合法的 C `BAD_REQUEST`／`NOT_FOUND`／`CONFLICT` 沿用對應的本機錯誤碼。其他錯誤或未知回應回固定 `REMOTE_UNAVAILABLE`。錯誤訊息由 A 產生，上游錯誤文字、Cookie、URL 及主機路徑保留在 A 後端。
 
 Node 的 timeout 事件需要程式實際關閉請求，實作使用 AbortSignal；固定來源與拒絕重新導向的設計參考 Node 官方 HTTP 文件及 OWASP SSRF 指引。[Node HTTP](https://nodejs.org/docs/latest-v24.x/api/http.html)、[OWASP SSRF](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
 
