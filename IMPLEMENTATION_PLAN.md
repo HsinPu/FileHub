@@ -419,6 +419,14 @@ P11.1–P11.4 於 2026-11-10 完成，P11.5 於 2026-11-11 完成缺陷修正。
 - C 首次授權仍在等待時，取消個別瀏覽後 250 ms 請求仍未結束，C 回覆後才釋放 A 的瀏覽名額。P11.5 讓個別請求依自己的取消訊號結束，共用的 C 登入繼續供其他請求使用。[遠端請求](apps/server/src/modules/remotes/service.ts#L108)
 - 設定中的 IPv6 展開寫法與分享 URL 的壓縮寫法指向同一位址時，A 的設定驗證仍拒絕啟動。P11.5 比較正規化位址，並驗證等價寫法可連線及異址被拒絕。[來源設定](apps/server/src/modules/remotes/config.ts#L37)
 
+### 0.42.3 待修缺陷
+
+2026-11-11 以 `ffe1c22` 檢查。分頁在 Windows Chromium 與隔離 A／C HTTP 服務重現。目錄上限及設定檔編碼以正式 Linux image 驗證。
+
+- **調整每頁筆數後可能顯示空清單。** 本機與遠端目錄各有 55 筆。從每頁 50 筆的第 2 頁進入個人設定，改成每頁 100 筆後返回，網址仍保留第 2 頁。API 回 200、總數 55、位移 100 和空清單，畫面顯示總數並隱藏分頁。重新整理會回到第 1 頁並顯示全部檔案。[工作空間分頁](apps/web/src/features/files/Workspace.tsx#L83)
+- **遠端目錄超過掃描上限時被顯示為連線錯誤。** C 共享目錄中的子資料夾含 5,001 個合成檔案。C 回 422 `RESOURCE_LIMIT`，A 回 503 `REMOTE_UNAVAILABLE`。同來源的單檔資料夾在測試前後仍能透過 A 開啟。待修的是錯誤映射，掃描上限沿用既有契約。[遠端錯誤映射](apps/server/src/modules/remotes/service.ts#L69)
+- **含 UTF-8 BOM 的私有來源設定使 A 無法啟動。** 以相同 JSON 內容和 `0600` 檔案權限測試，無 BOM 時 API 就緒，有 BOM 時正式入口回 `ConfigError`。0.42.3 的操作文件已補上存檔編碼要求。[來源設定讀取](apps/server/src/modules/remotes/config.ts#L73)
+
 ## 下一次開工入口
 
 **P0–P10 共 70 份完成。** 2026-11-05 已依 P10.7（本機 `docs/validation/P10.7.md`）將本機 8088 保留資料更新至 0.40.18。P10.8 新增內網 HTTP 部署設定，實機安裝步驟見 [README](README.md#從另一台電腦開啟-filehub)。原始需求與縮限依驗收稽核，未驗環境依跨階段矩陣。後續新需求另列計畫，每份驗證後本機 commit。
