@@ -20,7 +20,7 @@
 
 ## Compose 連接埠與登入
 
-- 0.42.4 的固定 Debian slim 基礎映像包含 Node.js 內建公共根憑證。缺少系統 CA 檔時，APT 步驟從 Node.js 暫時產生 PEM。傳入 `apt_ca_bundle` 時，由 APT 直接讀取掛載的檔案，並以 `0444` 讓 `_apt` 可讀。Docker Desktop 已驗兩條路徑均可完整建置。Compose 可用指令前置的 `FILEHUB_IMAGE` 指定新映像，保留既有部署設定。[建置指令](README.md#docker-build-與-31tv-ca)
+- 0.42.4 的固定 Debian slim 基礎映像包含 Node.js 內建公共根憑證。缺少系統 CA 檔時，APT 步驟從 Node.js 暫時產生 PEM。傳入 `apt_ca_bundle` 時，由 APT 直接讀取掛載的檔案，並以 `0444` 讓 `_apt` 可讀。Docker Desktop 已驗兩條路徑均可完整建置。Compose 可用指令前置的 `FILEHUB_IMAGE` 指定新映像，保留既有部署設定。[建置指令](README.md#docker-build-與自訂-ca)
 
 - Compose 預設發布 `0.0.0.0:8088`，綁定位址與登入來源各自設定。未明確指定 `FILEHUB_PUBLIC_ORIGIN` 時，仍由 `FILEHUB_HTTP_PORT` 產生供本機使用的 loopback HTTP 來源。跨機登入使用實際瀏覽器來源，內網 HTTP 必須明確啟用 `FILEHUB_ALLOW_LAN_HTTP=true`。`FILEHUB_PUBLIC_ORIGIN` 只填協定、主機與埠。登入會驗證瀏覽器的 Origin，`/health/ready` 可獨立通過。Docker 測試用埠 `0` 由 Docker 分配，需明確設定 HTTP 測試使用的合成 Origin。安裝範例見 [README](README.md#使用-docker-compose-啟動)。
 

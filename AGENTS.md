@@ -117,7 +117,7 @@ P7.1–P7.9 已完成殼層、工具列、搜尋、選取、導覽、設定、�
 
 ## 版本與驗證
 
-- 正式 Dockerfile 在建置階段透過 HTTPS 安裝 Debian 套件。固定 slim base 缺少系統 CA 檔時，使用 Node.js 內建公共根憑證。31TV 可將主機 CA bundle 以 `apt_ca_bundle` BuildKit secret 傳入，掛載範圍限 APT 步驟。[建置指令](README.md#docker-build-與-31tv-ca)
+- 正式 Dockerfile 在建置階段透過 HTTPS 安裝 Debian 套件。固定 slim base 缺少系統 CA 檔時，使用 Node.js 內建公共根憑證。需要自訂 CA 的建置環境可將主機 CA bundle 以 `apt_ca_bundle` BuildKit secret 傳入，掛載範圍限 APT 步驟。[建置指令](README.md#docker-build-與自訂-ca)
 - 版本來源為根 `package.json`，目前 `0.42.4`；三個私有 workspace 同版，實質程式變更依 SemVer 同步。發行版本亦同步 Docker label、Compose／env 預設 image tag 及 `docker/nfs-fixture.Dockerfile` 的 CI image 預設；fixtures 從根版本取 tag，`check:project` 核對一致性。文件變更不增加版本。
 - 修改文件後檢查相對連結、來源定位、圖表、證據邊界與 `git diff --check`。
 - 更新本檔、`MEMORY.md`、`README.md`，介面知識另同步 `DESIGN.md`；只保留已驗證且可長期使用的資訊。

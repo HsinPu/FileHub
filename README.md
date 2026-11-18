@@ -73,7 +73,7 @@ docker compose stop api worker
 
 停止服務會保留資料。預設持久 volumes 為 `filehub_state`、`filehub_files`、`filehub_cache`；勿以 `down -v` 清除使用中的資料。升級前須停寫並準備已驗還原的[完整備份](docs/operations/full-backup.md)，不能只複製使用中的 `.db`。
 
-### Docker build 與 31TV CA
+### Docker build 與自訂 CA
 
 在專案根目錄執行。啟動前，既有部署先依備份與升級流程停寫，並沿用原本的 Compose `-f` 選項、專案名稱、`.env` 與資料卷。[部署操作](docs/operations/deployment.md)
 
@@ -82,10 +82,10 @@ docker build --platform linux/amd64 -t filehub:0.42.4 .
 FILEHUB_IMAGE=filehub:0.42.4 docker compose up -d --wait --no-build api worker
 ```
 
-31TV 使用以下這行建置，再使用上方相同的 Compose 指令。
+若建置環境需要自訂 CA，將下方的 `/path/to/ca-bundle.pem` 換成建置主機上可讀取的 PEM 憑證檔路徑。建置完成後使用相同的 Compose 指令。
 
 ```sh
-docker build --platform linux/amd64 --secret id=apt_ca_bundle,src=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem -t filehub:0.42.4 .
+docker build --platform linux/amd64 --secret "id=apt_ca_bundle,src=/path/to/ca-bundle.pem" -t filehub:0.42.4 .
 ```
 
 APT 透過 HTTPS 連線至 Debian。一般建置使用基礎映像可用的根憑證。指定 CA 時，BuildKit 只將 CA 掛入 APT 安裝步驟。若更換 CA 並要重新驗證下載，在建置指令加 `--no-cache`，因為 CA 內容的變更本身不會使 BuildKit 快取失效。

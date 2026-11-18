@@ -429,7 +429,7 @@ P11.1–P11.4 於 2026-11-10 完成，P11.5 於 2026-11-11 完成缺陷修正。
 
 ## Docker 建置維護
 
-2026-11-18 的 `0.42.4` 將正式 Dockerfile 的 Debian APT 來源改為 HTTPS，並提供選用的 `apt_ca_bundle` BuildKit 掛載。Docker Desktop 已完整建置一般路徑及掛入公開根憑證的路徑，隔離 Compose 6 項通過。31TV 的實機部署另行安排。本機紀錄 `docs/validation/build-0.42.4.md`。[操作指令](README.md#docker-build-與-31tv-ca)
+2026-11-18 的 `0.42.4` 將正式 Dockerfile 的 Debian APT 來源改為 HTTPS，並提供選用的 `apt_ca_bundle` BuildKit 掛載。Docker Desktop 已完整建置一般路徑及掛入公開根憑證的路徑，隔離 Compose 6 項通過。自訂 CA 的 PEM 路徑由建置環境提供。本機紀錄 `docs/validation/build-0.42.4.md`。[操作指令](README.md#docker-build-與自訂-ca)
 
 ## 下一次開工入口
 
