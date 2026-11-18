@@ -10,7 +10,7 @@ B 的瀏覽器登入 A，從 A 工作空間切換本機入口及「遠端 FileHu
 
 ## 在 A 設定來源
 
-以 [remote-sources.example.json](../../remote-sources.example.json) 為格式範例。0.42.3 請將設定存為 UTF-8（無 BOM）。檔案開頭含 BOM 時，A 的 API 會回報設定無效並停止啟動。將設定放在主機私有目錄，且放在任何已註冊檔案入口之外，避免經一般檔案瀏覽或分享讀取。Linux 範例如下。
+以 [remote-sources.example.json](../../remote-sources.example.json) 為格式範例。0.42.4 請將設定存為 UTF-8（無 BOM）。檔案開頭含 BOM 時，A 的 API 會回報設定無效並停止啟動。將設定放在主機私有目錄，且放在任何已註冊檔案入口之外，避免經一般檔案瀏覽或分享讀取。Linux 範例如下。
 
 ```shell
 sudo install -d -m 700 -o 1000 -g 1000 /srv/filehub-config

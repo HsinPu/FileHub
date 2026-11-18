@@ -4,7 +4,7 @@
 
 本文件是新版 FileHub 從 P0 開始的實作順序與進度依據。後續每次開工先選定這裡的一份工作，依指定參考、修改位置及驗收條件完成，再更新狀態並 commit。
 
-建立於 2026-10-27。**P0–P9 已完成 62 份，加上 P10.1–P10.8 共 70 份，P11.1–P11.5 完成後合計 75 份，程式版本 `0.42.3`／schema 13。** P10.8 在隔離環境驗證內網 HTTP 與 `/FileHub/`。本機 8088 的交付版本依 P10.7 為 `0.40.18`。P8 的 [File Browser 全畫面還原](docs/reviews/filebrowser-visual-reference.md)與驗收保留歷史；P9 的[設計研究](docs/reviews/p9-design-review.md)已完成實作與保留資料交付。P10.3 於 2026-11-04 完成視覺驗收及原圖判讀更正；P10.4 已完成正式交付。原始計畫功能對照、最新結果及缺口見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。歷史功能驗收依 P6.4（本機 `docs/validation/P6.4.md`）及跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
+建立於 2026-10-27。**P0–P9 已完成 62 份，加上 P10.1–P10.8 共 70 份，P11.1–P11.5 完成後合計 75 份，程式版本 `0.42.4`／schema 13。** P10.8 在隔離環境驗證內網 HTTP 與 `/FileHub/`。本機 8088 的交付版本依 P10.7 為 `0.40.18`。P8 的 [File Browser 全畫面還原](docs/reviews/filebrowser-visual-reference.md)與驗收保留歷史；P9 的[設計研究](docs/reviews/p9-design-review.md)已完成實作與保留資料交付。P10.3 於 2026-11-04 完成視覺驗收及原圖判讀更正；P10.4 已完成正式交付。原始計畫功能對照、最新結果及缺口見[驗收準備稽核](docs/reviews/acceptance-readiness-2026-11-01.md)。歷史功能驗收依 P6.4（本機 `docs/validation/P6.4.md`）及跨階段矩陣（本機 `docs/validation/P6-matrix.md`）。
 
 ## 計畫放置與使用方式
 
@@ -426,6 +426,10 @@ P11.1–P11.4 於 2026-11-10 完成，P11.5 於 2026-11-11 完成缺陷修正。
 - **調整每頁筆數後可能顯示空清單。** 本機與遠端目錄各有 55 筆。從每頁 50 筆的第 2 頁進入個人設定，改成每頁 100 筆後返回，網址仍保留第 2 頁。API 回 200、總數 55、位移 100 和空清單，畫面顯示總數並隱藏分頁。重新整理會回到第 1 頁並顯示全部檔案。[工作空間分頁](apps/web/src/features/files/Workspace.tsx#L83)
 - **遠端目錄超過掃描上限時被顯示為連線錯誤。** C 共享目錄中的子資料夾含 5,001 個合成檔案。C 回 422 `RESOURCE_LIMIT`，A 回 503 `REMOTE_UNAVAILABLE`。同來源的單檔資料夾在測試前後仍能透過 A 開啟。待修的是錯誤映射，掃描上限沿用既有契約。[遠端錯誤映射](apps/server/src/modules/remotes/service.ts#L69)
 - **含 UTF-8 BOM 的私有來源設定使 A 無法啟動。** 以相同 JSON 內容和 `0600` 檔案權限測試，無 BOM 時 API 就緒，有 BOM 時正式入口回 `ConfigError`。0.42.3 的操作文件已補上存檔編碼要求。[來源設定讀取](apps/server/src/modules/remotes/config.ts#L73)
+
+## Docker 建置維護
+
+2026-11-18 的 `0.42.4` 將正式 Dockerfile 的 Debian APT 來源改為 HTTPS，並提供選用的 `apt_ca_bundle` BuildKit 掛載。Docker Desktop 已完整建置一般路徑及掛入公開根憑證的路徑，隔離 Compose 6 項通過。31TV 的實機部署另行安排。本機紀錄 `docs/validation/build-0.42.4.md`。[操作指令](README.md#docker-build-與-31tv-ca)
 
 ## 下一次開工入口
 
